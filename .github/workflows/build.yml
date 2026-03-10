@@ -51,7 +51,14 @@ jobs:
       - name: PyInstaller Build
         shell: bash
         run: |
-          pyinstaller --noconsole launcher.py
+          if [[ "${{ matrix.artifact_name }}" == "Mac_Intel" ]]; then
+            # Erzwingt den Build-Prozess in die Intel-Architektur
+            arch -x86_64 python -m pip install pygame pyinstaller --force-reinstall
+            arch -x86_64 pyinstaller --noconsole launcher.py
+          else
+            # Normaler Build für Silicon/Windows/Linux
+            pyinstaller --noconsole launcher.py
+          fi
           cp -r assets dist/launcher/ || true
           cp games.json dist/launcher/ || true
 
