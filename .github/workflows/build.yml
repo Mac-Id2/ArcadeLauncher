@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         # Hier sind nun beide Mac-Architekturen plus Windows und Linux enthalten
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-13]
+        os: [windows-latest, ubuntu-latest, macos-latest, macos-15]
 
     steps:
       - name: 1. Code auschecken
