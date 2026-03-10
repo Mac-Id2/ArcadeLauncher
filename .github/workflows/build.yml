@@ -2,7 +2,7 @@ name: Build Arcade Launcher (Release-Workflow)
 
 on:
   push:
-    # Der Build startet NUR noch, wenn du ein Tag wie v1.0.0 pushst
+    # Build startet nur bei Tags wie v1.0.0, v2.1.0 etc.
     tags:
       - 'v*' 
 
@@ -15,7 +15,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        # Hier sind nun beide Mac-Architekturen plus Windows und Linux enthalten
+        os: [windows-latest, ubuntu-latest, macos-latest, macos-13]
 
     steps:
       - name: 1. Code auschecken
@@ -38,16 +39,15 @@ jobs:
           cp -r assets dist/launcher/
           cp games.json dist/launcher/
 
-      - name: 5. Zippen mit Versionsnummer
+      - name: 5. Zippen mit Version und Architektur
         shell: bash
         run: |
-          # Nutzt den Namen des Tags (z.B. v1.0.1) für den Dateinamen
+          # Erstellt ZIPs wie ArcadeLauncher-v1.0.0-macos-13.zip
           python -c "import shutil; shutil.make_archive('ArcadeLauncher-${{ github.ref_name }}-${{ matrix.os }}', 'zip', 'dist')"
 
       - name: 6. Echtes GitHub Release erstellen
         uses: softprops/action-gh-release@v2
         with:
-          # Erstellt ein echtes Release basierend auf deinem Tag
           tag_name: ${{ github.ref_name }}
           name: "Release ${{ github.ref_name }}"
           files: ArcadeLauncher-${{ github.ref_name }}-${{ matrix.os }}.zip
