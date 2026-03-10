@@ -33,23 +33,24 @@ jobs:
       - name: Python installieren
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # 3.11 ist stabiler für Intel-Builds
+          python-version: '3.10' # 3.10 ist die stabilste Basis für Cross-Builds
 
-      - name: Abhängigkeiten fixen und installieren
+      - name: Abhängigkeiten installieren
         run: |
           python -m pip install --upgrade pip
-          # Dieser Befehl behebt den NullProvider Fehler:
-          pip install "setuptools<70.0.0" pygame pyinstaller
+          # Wir erzwingen eine Setuptools-Version, die den NullProvider noch hat
+          pip install "setuptools<69.0.0" pygame pyinstaller
 
       - name: PyInstaller Build
         shell: bash
         run: |
           if [[ "${{ matrix.artifact_name }}" == "Mac_Intel" ]]; then
-            # Erzwingt Intel-Architektur (x86_64) für das alte MacBook Pro
-            arch -x86_64 python -m pip install pygame pyinstaller --force-reinstall
+            # Der entscheidende Befehl für das alte MacBook:
+            # Wir installieren ALLES im Intel-Modus neu
+            arch -x86_64 python -m pip install --upgrade pip
+            arch -x86_64 pip install "setuptools<69.0.0" pygame pyinstaller --force-reinstall
             arch -x86_64 pyinstaller --noconsole launcher.py
           else
-            # Standard-Build für Silicon, Windows und Linux
             pyinstaller --noconsole launcher.py
           fi
           # Assets kopieren
