@@ -16,7 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-13]
+        # macos-14 ist der aktuelle Ersatz für Intel-Builds bei GitHub
+        os: [windows-latest, ubuntu-latest, macos-latest, macos-14]
 
     steps:
       - name: Code auschecken
