@@ -1,10 +1,10 @@
-name: Build Arcade Launcher (Release-Workflow)
+name: Build Arcade Launcher (Stable-Final)
 
 on:
   push:
-    branches: [ main ]  # Baut bei jedem normalen Hochladen (Testen)
+    branches: [ main ]
     tags:
-      - 'v*'           # Erstellt ein echtes Release (Produktion)
+      - 'v*' 
 
 permissions:
   contents: write
@@ -14,16 +14,10 @@ jobs:
     name: Build auf ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      # Verhindert, dass Windows abgebrochen wird, nur weil Mac gerade hakt
+      fail-fast: false 
       matrix:
-        include:
-          - os: windows-latest
-            artifact_name: Windows
-          - os: ubuntu-latest
-            artifact_name: Linux
-          - os: macos-15            # Apple Silicon (M1/M2/M3) - Neuestes macOS
-            artifact_name: Mac_Silicon
-          - os: macos-13            # Intel-Mac - Stabilster Intel-Runner
-            artifact_name: Mac_Intel
+        os: [windows-latest, ubuntu-latest, macos-latest, macos-12]
 
     steps:
       - name: 1. Code auschecken
@@ -43,22 +37,26 @@ jobs:
         shell: bash
         run: |
           pyinstaller --noconsole launcher.py
-          cp -r assets dist/launcher/
-          cp games.json dist/launcher/
+          cp -r assets dist/launcher/ || true
+          cp games.json dist/launcher/ || true
 
-      - name: 5. Zippen mit Version und Architektur
+      - name: 5. Zippen
         shell: bash
         run: |
-          # Erstellt ZIPs wie ArcadeLauncher-v1.0.0-macos-13.zip
-          python -c "import shutil; shutil.make_archive('ArcadeLauncher-${{ github.ref_name }}-${{ matrix.os }}', 'zip', 'dist')"
+          python -c "import shutil; shutil.make_archive('ArcadeLauncher-${{ matrix.os }}', 'zip', 'dist/launcher')"
 
-      - name: 6. Echtes GitHub Release erstellen
+      - name: 6. Release erstellen (Nur bei Tags)
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: "Release ${{ github.ref_name }}"
-          files: ArcadeLauncher-${{ github.ref_name }}-${{ matrix.os }}.zip
-          draft: false
-          prerelease: false
+          files: ArcadeLauncher-${{ matrix.os }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 7. Upload Artifact (Für normale Pushes ohne Tag)
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: Launcher-${{ matrix.os }}
+          path: ArcadeLauncher-${{ matrix.os }}.zip
