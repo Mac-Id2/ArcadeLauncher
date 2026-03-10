@@ -17,7 +17,7 @@ jobs:
       # Verhindert, dass Windows abgebrochen wird, nur weil Mac gerade hakt
       fail-fast: false 
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-12]
+        os: [windows-latest, ubuntu-latest, macos-latest, macos-15]
 
     steps:
       - name: 1. Code auschecken
