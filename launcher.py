@@ -273,7 +273,7 @@ while running:
                 if aktuelles_os in path_dict:
                     exe_path = path_dict[aktuelles_os]
                     
-                    # WICHTIG: Hier ist deine Mac-.app Logik wieder drin!
+                    # Logik für Mac .app Bundles
                     is_mac_app = aktuelles_os == "Darwin" and exe_path.endswith(".app")
                     
                     if os.path.exists(exe_path):
@@ -291,12 +291,10 @@ while running:
                                 pygame.display.set_mode((sw, sh)) 
                                 pygame.display.iconify() 
                             
-                            # 3. Spiel starten (Subprocess blockiert, bis das Spiel beendet ist)
+                            # 3. Spiel starten
                             if is_mac_app:
-                                # macOS .app Bundle über den "open" Befehl starten
                                 subprocess.run(["open", "-W", exe_path], cwd=spiel_ordner)
                             else:
-                                # Normale Executable starten (Windows, Linux oder reine Mac-Binaries)
                                 subprocess.run([exe_path], cwd=spiel_ordner)
                             
                             # 4. MAC-FIX: Nach dem Spiel den Launcher wieder in den Fullscreen holen
