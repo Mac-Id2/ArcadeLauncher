@@ -2,9 +2,9 @@ name: Build Arcade Launcher (Release-Workflow)
 
 on:
   push:
-    # Build startet nur bei Tags wie v1.0.0, v2.1.0 etc.
+    branches: [ main ]  # Baut bei jedem normalen Hochladen (Testen)
     tags:
-      - 'v*' 
+      - 'v*'           # Erstellt ein echtes Release (Produktion)
 
 permissions:
   contents: write
