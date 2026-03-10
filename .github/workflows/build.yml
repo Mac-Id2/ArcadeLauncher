@@ -15,8 +15,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # Hier sind nun beide Mac-Architekturen plus Windows und Linux enthalten
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-15]
+        include:
+          - os: windows-latest
+            artifact_name: Windows
+          - os: ubuntu-latest
+            artifact_name: Linux
+          - os: macos-15            # Apple Silicon (M1/M2/M3) - Neuestes macOS
+            artifact_name: Mac_Silicon
+          - os: macos-13            # Intel-Mac - Stabilster Intel-Runner
+            artifact_name: Mac_Intel
 
     steps:
       - name: 1. Code auschecken
