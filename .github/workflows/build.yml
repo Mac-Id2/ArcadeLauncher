@@ -1,12 +1,11 @@
-name: Build Arcade Launcher (Cross-Platform)
+name: Build Arcade Launcher (Release-Workflow)
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    # Der Build startet NUR noch, wenn du ein Tag wie v1.0.0 pushst
+    tags:
+      - 'v*' 
 
-# DAS HIER IST DER FIX FÜR DEN FEHLER:
 permissions:
   contents: write
 
@@ -16,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-15-intel, macos-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
       - name: 1. Code auschecken
@@ -27,32 +26,32 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: 3. Bibliotheken installieren (Pygame & PyInstaller)
+      - name: 3. Bibliotheken installieren
         run: |
           python -m pip install --upgrade pip
           pip install pygame pyinstaller
 
-      - name: 4. Launcher verpacken & Assets kopieren
+      - name: 4. Launcher verpacken
         shell: bash
         run: |
-          # Pyinstaller ausführen (ohne --add-data, wir legen es manuell daneben)
           pyinstaller --noconsole launcher.py
-          
-          # Assets und Config in den generierten Launcher-Ordner kopieren (Gilt für alle OS!)
           cp -r assets dist/launcher/
           cp games.json dist/launcher/
 
-      - name: 5. Den kompletten Ordner zippen
+      - name: 5. Zippen mit Versionsnummer
         shell: bash
         run: |
-          python -c "import shutil; shutil.make_archive('ArcadeLauncher-${{ matrix.os }}', 'zip', 'dist')"
+          # Nutzt den Namen des Tags (z.B. v1.0.1) für den Dateinamen
+          python -c "import shutil; shutil.make_archive('ArcadeLauncher-${{ github.ref_name }}-${{ matrix.os }}', 'zip', 'dist')"
 
-      - name: 6. Upload als unsichtbares GitHub Release
+      - name: 6. Echtes GitHub Release erstellen
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: test-run-${{ github.run_id }}
-          name: "Test-Build #${{ github.run_id }}"
-          files: ArcadeLauncher-${{ matrix.os }}.zip
-          draft: true
+          # Erstellt ein echtes Release basierend auf deinem Tag
+          tag_name: ${{ github.ref_name }}
+          name: "Release ${{ github.ref_name }}"
+          files: ArcadeLauncher-${{ github.ref_name }}-${{ matrix.os }}.zip
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
