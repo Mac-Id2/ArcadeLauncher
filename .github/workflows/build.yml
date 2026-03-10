@@ -36,10 +36,15 @@ jobs:
       - name: 4. Launcher verpacken
         shell: bash
         run: |
-          pyinstaller --noconsole launcher.py
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            # Baut eine Datei für BEIDE Mac-Architekturen
+            pyinstaller --noconsole --target-arch universal2 launcher.py
+          else
+            pyinstaller --noconsole launcher.py
+          fi
           cp -r assets dist/launcher/ || true
           cp games.json dist/launcher/ || true
-
+          
       - name: 5. Zippen
         shell: bash
         run: |
