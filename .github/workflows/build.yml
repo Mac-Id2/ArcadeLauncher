@@ -1,13 +1,9 @@
 name: Build Arcade Launcher
-
 on:
-  # 1. Manueller Start (Zum Testen ohne Tag-Zwang)
-  workflow_dispatch:
-
-  # 2. Automatischer Start bei neuem Tag (Für das offizielle Release)
+  workflow_dispatch: # Manueller Start zum Testen
   push:
     tags:
-      - 'v*'
+      - 'v*' # Offizielles Release
 
 permissions:
   contents: write
@@ -19,8 +15,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Alle 4 Systeme, die du brauchst
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-13]
+        # Wir brauchen nur noch 3 Runner, da Mac jetzt 2-in-1 ist!
+        os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -31,10 +27,15 @@ jobs:
       - name: Install
         run: pip install pygame pyinstaller
 
-      - name: Build
+      - name: Build Launcher
         shell: bash
         run: |
-          pyinstaller --noconsole launcher.py
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            # Erstellt die Universal-Datei für Intel UND Apple Silicon
+            pyinstaller --noconsole --target-arch universal2 launcher.py
+          else
+            pyinstaller --noconsole launcher.py
+          fi
           cp -r assets dist/launcher/ || true
           cp games.json dist/launcher/ || true
 
@@ -42,16 +43,14 @@ jobs:
         shell: bash
         run: python -c "import shutil; shutil.make_archive('Launcher-${{ matrix.os }}', 'zip', 'dist/launcher')"
 
-      # WENN MANUELL GESTARTET: Lade es als Artifact hoch (zum Testen)
-      - name: Test-Artifact Upload
+      - name: Test-Artifact (Manueller Lauf)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: Test-Build-${{ matrix.os }}
+          name: Launcher-${{ matrix.os }}
           path: Launcher-${{ matrix.os }}.zip
 
-      # WENN PER TAG GESTARTET: Erstelle ein echtes Release
-      - name: Release Upload
+      - name: Release Upload (Tag Lauf)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
