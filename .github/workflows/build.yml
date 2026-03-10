@@ -22,21 +22,26 @@ jobs:
           - os: ubuntu-latest
             artifact_name: Linux
           - os: macos-latest
-            artifact_name: Mac_Silicon_M1_M2_M3
-          - os: macos-13
-            artifact_name: Mac_Intel_Alt
+            artifact_name: Mac_Silicon
+          - os: macos-latest  # Wir nutzen denselben Runner für den Intel-Build
+            artifact_name: Mac_Intel
 
     steps:
       - name: Code auschecken
         uses: actions/checkout@v4
 
-      - name: Python installieren
+      - name: Python installieren (Intel x64 erzwingen)
+        if: matrix.artifact_name == 'Mac_Intel'
         uses: actions/setup-python@v5
         with:
-          # Für Intel-Kompatibilität ist 3.11 auf dem alten Runner sicherer
           python-version: '3.11'
-          # WICHTIG: Erzwingt Intel-Architektur auf dem Mac-Runner
-          architecture: ${{ matrix.os == 'macos-13' && 'x64' || 'x64' }}
+          architecture: 'x64'
+
+      - name: Python installieren (Standard)
+        if: matrix.artifact_name != 'Mac_Intel'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
       - name: Abhängigkeiten installieren
         run: |
