@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: Build auf ${{ matrix.os }}
+    name: Build auf ${{ matrix.artifact_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -23,42 +23,36 @@ jobs:
             artifact_name: Linux
           - os: macos-latest
             artifact_name: Mac_Silicon
-          - os: macos-latest  # Wir nutzen denselben Runner für den Intel-Build
+          - os: macos-latest
             artifact_name: Mac_Intel
 
     steps:
       - name: Code auschecken
         uses: actions/checkout@v4
 
-      - name: Python installieren (Intel x64 erzwingen)
-        if: matrix.artifact_name == 'Mac_Intel'
+      - name: Python installieren
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          architecture: 'x64'
+          python-version: '3.11' # 3.11 ist stabiler für Intel-Builds
 
-      - name: Python installieren (Standard)
-        if: matrix.artifact_name != 'Mac_Intel'
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Abhängigkeiten installieren
+      - name: Abhängigkeiten fixen und installieren
         run: |
           python -m pip install --upgrade pip
-          pip install pygame pyinstaller
+          # Dieser Befehl behebt den NullProvider Fehler:
+          pip install "setuptools<70.0.0" pygame pyinstaller
 
       - name: PyInstaller Build
         shell: bash
         run: |
           if [[ "${{ matrix.artifact_name }}" == "Mac_Intel" ]]; then
-            # Erzwingt den Build-Prozess in die Intel-Architektur
+            # Erzwingt Intel-Architektur (x86_64) für das alte MacBook Pro
             arch -x86_64 python -m pip install pygame pyinstaller --force-reinstall
             arch -x86_64 pyinstaller --noconsole launcher.py
           else
-            # Normaler Build für Silicon/Windows/Linux
+            # Standard-Build für Silicon, Windows und Linux
             pyinstaller --noconsole launcher.py
           fi
+          # Assets kopieren
           cp -r assets dist/launcher/ || true
           cp games.json dist/launcher/ || true
 
