@@ -1,10 +1,13 @@
-name: Build Arcade Launcher (Stable-Final)
+name: Build Arcade Launcher
 
 on:
+  # 1. Manueller Start (Zum Testen ohne Tag-Zwang)
+  workflow_dispatch:
+
+  # 2. Automatischer Start bei neuem Tag (Für das offizielle Release)
   push:
-    branches: [ main ]
     tags:
-      - 'v*' 
+      - 'v*'
 
 permissions:
   contents: write
@@ -14,54 +17,44 @@ jobs:
     name: Build auf ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      # Verhindert, dass Windows abgebrochen wird, nur weil Mac gerade hakt
-      fail-fast: false 
+      fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-15]
+        # Alle 4 Systeme, die du brauchst
+        os: [windows-latest, ubuntu-latest, macos-latest, macos-13]
 
     steps:
-      - name: 1. Code auschecken
-        uses: actions/checkout@v4
-
-      - name: 2. Python installieren
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: 3. Bibliotheken installieren
-        run: |
-          python -m pip install --upgrade pip
-          pip install pygame pyinstaller
+      - name: Install
+        run: pip install pygame pyinstaller
 
-      - name: 4. Launcher verpacken
+      - name: Build
         shell: bash
         run: |
-          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            # Baut eine Datei für BEIDE Mac-Architekturen
-            pyinstaller --noconsole --target-arch universal2 launcher.py
-          else
-            pyinstaller --noconsole launcher.py
-          fi
+          pyinstaller --noconsole launcher.py
           cp -r assets dist/launcher/ || true
           cp games.json dist/launcher/ || true
-          
-      - name: 5. Zippen
-        shell: bash
-        run: |
-          python -c "import shutil; shutil.make_archive('ArcadeLauncher-${{ matrix.os }}', 'zip', 'dist/launcher')"
 
-      - name: 6. Release erstellen (Nur bei Tags)
+      - name: Zippen
+        shell: bash
+        run: python -c "import shutil; shutil.make_archive('Launcher-${{ matrix.os }}', 'zip', 'dist/launcher')"
+
+      # WENN MANUELL GESTARTET: Lade es als Artifact hoch (zum Testen)
+      - name: Test-Artifact Upload
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Test-Build-${{ matrix.os }}
+          path: Launcher-${{ matrix.os }}.zip
+
+      # WENN PER TAG GESTARTET: Erstelle ein echtes Release
+      - name: Release Upload
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          files: ArcadeLauncher-${{ matrix.os }}.zip
+          files: Launcher-${{ matrix.os }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 7. Upload Artifact (Für normale Pushes ohne Tag)
-        if: "!startsWith(github.ref, 'refs/tags/')"
-        uses: actions/upload-artifact@v4
-        with:
-          name: Launcher-${{ matrix.os }}
-          path: ArcadeLauncher-${{ matrix.os }}.zip
