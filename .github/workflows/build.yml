@@ -16,8 +16,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-14 ist der aktuelle Ersatz für Intel-Builds bei GitHub
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-14]
+        include:
+          - os: windows-latest
+            artifact_name: Windows
+          - os: ubuntu-latest
+            artifact_name: Linux
+          - os: macos-latest
+            artifact_name: Mac_Silicon_M1_M2_M3
+          - os: macos-13
+            artifact_name: Mac_Intel_Alt
 
     steps:
       - name: Code auschecken
@@ -26,7 +33,10 @@ jobs:
       - name: Python installieren
         uses: actions/setup-python@v5
         with:
+          # Für Intel-Kompatibilität ist 3.11 auf dem alten Runner sicherer
           python-version: '3.11'
+          # WICHTIG: Erzwingt Intel-Architektur auf dem Mac-Runner
+          architecture: ${{ matrix.os == 'macos-13' && 'x64' || 'x64' }}
 
       - name: Abhängigkeiten installieren
         run: |
@@ -42,19 +52,19 @@ jobs:
 
       - name: Archivieren
         shell: bash
-        run: python -c "import shutil; shutil.make_archive('Launcher-${{ matrix.os }}', 'zip', 'dist/launcher')"
+        run: python -c "import shutil; shutil.make_archive('Launcher-${{ matrix.artifact_name }}', 'zip', 'dist/launcher')"
 
       - name: Test-Artifact (Manueller Lauf)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: Launcher-${{ matrix.os }}
-          path: Launcher-${{ matrix.os }}.zip
+          name: Launcher-${{ matrix.artifact_name }}
+          path: Launcher-${{ matrix.artifact_name }}.zip
 
       - name: Release Erstellen (Tag Lauf)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: Launcher-${{ matrix.os }}.zip
+          files: Launcher-${{ matrix.artifact_name }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
