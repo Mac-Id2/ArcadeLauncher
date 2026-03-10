@@ -1,0 +1,20 @@
+{
+    "games": [
+        {
+            "display_name": "SPACE INVADERS",
+            "paths": {
+                "Windows": "../spiele/Space-Invaders/main.exe",
+                "Darwin": "../spiele/Space-Invaders/main",
+                "Linux": "../spiele/Space-Invaders/main"
+            }
+        },
+        {
+            "display_name": "PAC-MAN",
+            "paths": {
+                "Windows": "../spiele/Pac-Man/game.exe",
+                "Darwin": "../spiele/Pac-Man/PacManAePrjekt.app", 
+                "Linux": "../spiele/Pac-Man/game.x86_64"
+            }
+        }
+    ]
+}
