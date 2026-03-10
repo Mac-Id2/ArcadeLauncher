@@ -6,25 +6,25 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: write
-
 jobs:
   build:
     name: Build auf ${{ matrix.artifact_name }}
     runs-on: ${{ matrix.os }}
+    # Schreibrecht nur hier – wird für upload-artifact und release benötigt
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-latest
-            artifact_name: Windows
+            artifact_name: windows-x64
           - os: ubuntu-latest
-            artifact_name: Linux
+            artifact_name: linux-x64
           - os: macos-latest
-            artifact_name: Mac_Silicon
-          - os: macos-latest
-            artifact_name: Mac_Intel
+            artifact_name: macos-arm64
+          - os: macos-13          # macos-13 = letzter Intel-Runner (x86_64)
+            artifact_name: macos-amd64
 
     steps:
       - name: Code auschecken
@@ -33,29 +33,24 @@ jobs:
       - name: Python installieren
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10' # 3.10 ist die stabilste Basis für Cross-Builds
+          python-version: '3.10'
+          cache: 'pip'            # Pakete werden gecacht – spart ~60s pro Job
 
       - name: Abhängigkeiten installieren
         run: |
           python -m pip install --upgrade pip
-          # Wir erzwingen eine Setuptools-Version, die den NullProvider noch hat
-          pip install "setuptools<69.0.0" pygame pyinstaller
+          # Exakte Version pinnen – letzte stabile vor dem NullProvider-Breaking-Change
+          pip install "setuptools==68.2.2" pygame pyinstaller
 
       - name: PyInstaller Build
         shell: bash
         run: |
-          if [[ "${{ matrix.artifact_name }}" == "Mac_Intel" ]]; then
-            # Der entscheidende Befehl für das alte MacBook:
-            # Wir installieren ALLES im Intel-Modus neu
-            arch -x86_64 python -m pip install --upgrade pip
-            arch -x86_64 pip install "setuptools<69.0.0" pygame pyinstaller --force-reinstall
-            arch -x86_64 pyinstaller --noconsole launcher.py
-          else
-            pyinstaller --noconsole launcher.py
-          fi
-          # Assets kopieren
-          cp -r assets dist/launcher/ || true
-          cp games.json dist/launcher/ || true
+          # Kein arch-Sonderfall nötig – jeder Runner baut jetzt nativ
+          pyinstaller --noconsole launcher.py
+
+          # Assets nur kopieren wenn vorhanden – Fehler nicht verschlucken
+          [ -d assets ] && cp -r assets dist/launcher/
+          [ -f games.json ] && cp games.json dist/launcher/
 
       - name: Archivieren
         shell: bash
