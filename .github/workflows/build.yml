@@ -1,0 +1,58 @@
+name: Build Arcade Launcher (Cross-Platform)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# DAS HIER IST DER FIX FÜR DEN FEHLER:
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build auf ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-15-intel, macos-latest]
+
+    steps:
+      - name: 1. Code auschecken
+        uses: actions/checkout@v4
+
+      - name: 2. Python installieren
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 3. Bibliotheken installieren (Pygame & PyInstaller)
+        run: |
+          python -m pip install --upgrade pip
+          pip install pygame pyinstaller
+
+      - name: 4. Launcher verpacken & Assets kopieren
+        shell: bash
+        run: |
+          # Pyinstaller ausführen (ohne --add-data, wir legen es manuell daneben)
+          pyinstaller --noconsole launcher.py
+          
+          # Assets und Config in den generierten Launcher-Ordner kopieren (Gilt für alle OS!)
+          cp -r assets dist/launcher/
+          cp games.json dist/launcher/
+
+      - name: 5. Den kompletten Ordner zippen
+        shell: bash
+        run: |
+          python -c "import shutil; shutil.make_archive('ArcadeLauncher-${{ matrix.os }}', 'zip', 'dist')"
+
+      - name: 6. Upload als unsichtbares GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: test-run-${{ github.run_id }}
+          name: "Test-Build #${{ github.run_id }}"
+          files: ArcadeLauncher-${{ matrix.os }}.zip
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
