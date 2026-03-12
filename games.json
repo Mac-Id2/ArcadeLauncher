@@ -14,7 +14,7 @@
                 "Windows": "../spiele/Pac-Man/game.exe",
                 "Darwin": "../spiele/Pac-Man/game.app", 
                 "Linux": "../spiele/Pac-Man/game.x86_64"
-<<<<<<< HEAD
+
             }
         },
         {
@@ -23,8 +23,7 @@
                 "Windows": "../spiele/Asteroids/game.exe",
                 "Darwin": "../spiele/Asteroids/game.app",
                 "Linux": "../spiele/Asteroids/game"
-=======
->>>>>>> 0a0394ffd9152e2186922b8254355ee515d1c071
+
             }
         }
     ]
