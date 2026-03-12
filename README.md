@@ -28,14 +28,14 @@ Damit der Launcher alle Grafiken und Spiele findet, muss die Ordnerstruktur nach
 └── spiele/                     # Ordner für die eigentlichen Spiele
     │
     ├── Space-Invaders/         # Ein komplett kompiliertes Spiel
-    │   ├── main.exe            # Windows Executable
-    │   ├── main                # Mac / Linux Executable (ohne Endung)
+    │   ├── game.exe            # Windows Executable
+    │   ├── game                # Mac / Linux Executable (ohne Endung)
     │   ├── _internal/          # (Systemdateien von PyInstaller für das Spiel)
     │   └── assets/             # (Grafiken/Sounds für das Spiel selbst)
     │
     └── Pac-Man/
         ├── game.exe            # Windows
-        ├── game_mac            # Mac Executable
+        ├── game.app            # Mac
         ├── game.x86_64         # Linux
         ├── _internal/          
         └── assets/
