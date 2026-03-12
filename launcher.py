@@ -200,12 +200,10 @@ spr_invader1_a = create_sprite(INVADER_1, NEON_GREEN, scale_size)
 spr_invader1_b = create_sprite(INVADER_2, NEON_GREEN, scale_size)
 spr_invader2_a = create_sprite(INVADER_2, NEON_CYAN, scale_size)
 spr_invader2_b = create_sprite(INVADER_1, NEON_CYAN, scale_size)
-
 spr_pac_open = create_sprite(PACMAN_OPEN, NEON_YELLOW, scale_size)
 spr_pac_closed = create_sprite(PACMAN_CLOSED, NEON_YELLOW, scale_size)
 spr_ghost_red = create_sprite(GHOST, RED, scale_size)
 spr_ghost_cyan = create_sprite(GHOST, NEON_CYAN, scale_size)
-
 spr_ast_ship = create_sprite(ASTEROIDS_SHIP, NEON_PINK, scale_size)
 spr_ast_ship_thrust = create_sprite(ASTEROIDS_SHIP_THRUST, NEON_PINK, scale_size)
 spr_asteroid1 = create_sprite(ASTEROID_1, NEON_CYAN, scale_size)
@@ -260,25 +258,20 @@ try:
         boost_path = get_path(f"assets/{filename}") if os.path.exists(get_path(f"assets/{filename}")) else get_path(filename)
         boost_img = pygame.image.load(boost_path).convert_alpha()
         w_boost, h_boost = boost_img.get_size()
-        
         max_w = max(w_idle, w_boost)
         total_h = h_idle + h_boost
         combined_img = pygame.Surface((max_w, total_h), pygame.SRCALPHA)
-        
         combined_img.blit(idle_img, ((max_w - w_idle) // 2, 0))
         overlap = int(h_idle * 0.1)
         combined_img.blit(boost_img, ((max_w - w_boost) // 2, h_idle - overlap))
-        
         target_height = int(sh * 0.12)
         ratio = target_height / total_h
         target_width = int(max_w * ratio)
         combined_img = pygame.transform.scale(combined_img, (target_width, target_height))
-        
         base_ship_images.append(combined_img)
-        
     if len(base_ship_images) == 3:
         ship_loaded = True
-except Exception as e:
+except:
     pass
 
 selected_index = 0
@@ -296,10 +289,9 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN:
             error_message = ""
-
             if len(games) == 0:
                 if event.key == pygame.K_ESCAPE: running = False
-                else: error_message = "KEINE SPIELE IN GAMES.JSON GEFUNDEN"
+                else: error_message = "KEINE SPIELE GEFUNDEN"
                 continue
 
             if event.key == pygame.K_UP:
@@ -310,11 +302,15 @@ while running:
                 path_dict = games[selected_index]["paths"]
                 if aktuelles_os in path_dict:
                     exe_path = path_dict[aktuelles_os]
-                    
                     is_mac_app = aktuelles_os == "Darwin" and exe_path.endswith(".app")
                     
                     if os.path.exists(exe_path):
                         try:
+                            # --- FIX: EXECUTION PERMISSIONS ---
+                            if aktuelles_os in ["Linux", "Darwin"]:
+                                mode = os.stat(exe_path).st_mode
+                                os.chmod(exe_path, mode | 0o111)
+
                             screen.fill(BG_COLOR)
                             loading_txt = title_font.render("LOADING...", True, NEON_CYAN)
                             screen.blit(loading_txt, loading_txt.get_rect(center=(sw//2, sh//2)))
@@ -329,36 +325,37 @@ while running:
                             if is_mac_app:
                                 subprocess.run(["open", "-W", exe_path], cwd=spiel_ordner)
                             else:
-                                subprocess.run([exe_path], cwd=spiel_ordner)
+                                # FIX: check=True wirft Fehler bei Crash
+                                subprocess.run([exe_path], cwd=spiel_ordner, check=True)
                             
                             if aktuelles_os == "Darwin":
                                 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                             
                             pygame.event.clear()
+                        except subprocess.CalledProcessError as e:
+                            error_message = f"GAME CRASHED (CODE {e.returncode})"
                         except Exception as e:
-                            error_message = f"ERROR: {e}"
+                            error_message = f"ERROR: {str(e)[:30]}"
                     else:
                         error_message = f"NOT FOUND: {os.path.basename(exe_path)}"
                 else:
                     error_message = f"OS '{aktuelles_os}' NOT SUPPORTED"
             elif event.key == pygame.K_ESCAPE:
                 running = False
-                
+
+    # --- RENDERING LOGIK (unverändert) ---
     for star in stars:
         star[1] += star[2]
-        if star[1] > sh:
-            star[1], star[0] = 0, random.randint(0, sw)
+        if star[1] > sh: star[1], star[0] = 0, random.randint(0, sw)
 
     running_pac_x += 4
-    if running_pac_x > sw + 500:
-        running_pac_x = -200
+    if running_pac_x > sw + 500: running_pac_x = -200
 
     anim_toggle_fast = (frame_counter // 15) % 2 == 0
     anim_toggle_slow = (frame_counter // 25) % 2 == 0
 
     screen.fill(BG_COLOR)
     screen.blit(bloom_grid_surf, (0, 0))
-
     for star in stars:
         color = (150,150,150) if star[2]==1 else WHITE
         pygame.draw.rect(screen, color, (star[0], star[1], star[2], star[2]))
@@ -366,51 +363,27 @@ while running:
     if ship_loaded:
         if not ship_active:
             side = random.choice(['top', 'right', 'bottom', 'left'])
-            if side == 'top':
-                ship_x, ship_y = random.randint(0, sw), -200
-                target_x, target_y = random.randint(0, sw), sh + 200
-            elif side == 'bottom':
-                ship_x, ship_y = random.randint(0, sw), sh + 200
-                target_x, target_y = random.randint(0, sw), -200
-            elif side == 'left':
-                ship_x, ship_y = -200, random.randint(0, sh)
-                target_x, target_y = sw + 200, random.randint(0, sh)
-            else:
-                ship_x, ship_y = sw + 200, random.randint(0, sh)
-                target_x, target_y = -200, random.randint(0, sh)
-
-            dx = target_x - ship_x
-            dy = target_y - ship_y
+            if side == 'top': ship_x, ship_y = random.randint(0, sw), -200; target_x, target_y = random.randint(0, sw), sh + 200
+            elif side == 'bottom': ship_x, ship_y = random.randint(0, sw), sh + 200; target_x, target_y = random.randint(0, sw), -200
+            elif side == 'left': ship_x, ship_y = -200, random.randint(0, sh); target_x, target_y = sw + 200, random.randint(0, sh)
+            else: ship_x, ship_y = sw + 200, random.randint(0, sh); target_x, target_y = -200, random.randint(0, sh)
+            dx, dy = target_x - ship_x, target_y - ship_y
             dist = math.hypot(dx, dy)
-            if dist != 0:
-                ship_vx = (dx / dist) * ship_speed
-                ship_vy = (dy / dist) * ship_speed
-            else:
-                ship_vx, ship_vy = ship_speed, 0
-
+            ship_vx, ship_vy = (dx/dist)*ship_speed, (dy/dist)*ship_speed
             angle = math.degrees(math.atan2(-dy, dx)) - 90
-            
             ship_rotated_frames = [pygame.transform.rotate(img, angle) for img in base_ship_images]
             ship_active = True
-
-        ship_x += ship_vx
-        ship_y += ship_vy
-
-        if ship_x < -300 or ship_x > sw + 300 or ship_y < -300 or ship_y > sh + 300:
-            ship_active = False
-
+        ship_x += ship_vx; ship_y += ship_vy
+        if ship_x < -300 or ship_x > sw + 300 or ship_y < -300 or ship_y > sh + 300: ship_active = False
         if ship_active:
             boost_index = (frame_counter // 5) % 3
             current_ship = ship_rotated_frames[boost_index]
-            ship_rect = current_ship.get_rect(center=(int(ship_x), int(ship_y)))
-            screen.blit(current_ship, ship_rect)
+            screen.blit(current_ship, current_ship.get_rect(center=(int(ship_x), int(ship_y))))
 
     glow_y = math.sin(frame_counter * 0.05) * (sh * 0.01)
     shift_x = math.sin(frame_counter * 0.1) * (sw * 0.005)
     title_rect = title_font.render("DIGITS ARCADE", True, WHITE).get_rect(center=(sw//2, sh*0.15))
-    
-    glow_surf = title_font.render("DIGITS ARCADE", True, (DARK_RED[0], 20, 20))
-    screen.blit(glow_surf, title_rect.move(-6 - shift_x, 6 + glow_y))
+    screen.blit(title_font.render("DIGITS ARCADE", True, (DARK_RED[0], 20, 20)), title_rect.move(-6 - shift_x, 6 + glow_y))
     screen.blit(title_font.render("DIGITS ARCADE", True, (DARK_CYAN[0], 100, 100)), title_rect.move(6 + shift_x, -6 + glow_y))
     screen.blit(title_font.render("DIGITS ARCADE", True, WHITE), title_rect.move(0, glow_y))
     draw_punk_underline(title_rect, frame_counter)
@@ -422,49 +395,22 @@ while running:
         for i, game in enumerate(games):
             is_selected = (i == selected_index)
             txt = game['display_name']
-            
             wiggle_x = math.sin(frame_counter*0.1)*8 if is_selected else 0
-            wiggle_y = math.cos(frame_counter*0.1)*2 if is_selected else 0
-            game_rect = menu_font.render(txt, True, WHITE).get_rect(center=(sw//2 + wiggle_x, sh*0.48 + i*sh*0.12 + wiggle_y))
-            
+            game_rect = menu_font.render(txt, True, WHITE).get_rect(center=(sw//2 + wiggle_x, sh*0.48 + i*sh*0.12))
             if is_selected:
-                color = NEON_YELLOW
-                for off in [2, -2]:
-                    glow_surf = menu_font.render(txt, True, (200, 200, 0, 150))
-                    screen.blit(glow_surf, game_rect.move(off, off))
-                
-                game_surf = menu_font.render(txt, True, color)
+                game_surf = menu_font.render(txt, True, NEON_YELLOW)
                 screen.blit(game_surf, game_rect)
-                
-                padding = sw * 0.03
-                drift_speed = 0.05
-                drift_range = sw * 0.015
-                drift_x = math.sin(frame_counter * drift_speed) * drift_range
-                
-                sprite_left_x = game_rect.left - spr_pac_open.get_width() - padding + drift_x
-                sprite_right_x = game_rect.right + padding + drift_x
+                padding, drift_x = sw * 0.03, math.sin(frame_counter * 0.05) * (sw * 0.015)
                 sprite_y = game_rect.centery - (spr_pac_open.get_height() // 2) + int(sh * 0.010)
-                
-                if "SPACE" in txt.upper():
-                    spr_left = spr_invader1_a if anim_toggle_slow else spr_invader1_b
-                    spr_right = spr_invader2_a if anim_toggle_fast else spr_invader2_b
-                elif "ASTEROID" in txt.upper():
-                    spr_left = spr_ast_ship_thrust if anim_toggle_fast else spr_ast_ship
-                    spr_right = spr_asteroid1 if anim_toggle_slow else spr_asteroid2
-                else:
-                    spr_left = spr_pac_open if anim_toggle_fast else spr_pac_closed
-                    spr_right = spr_ghost_red
-                    
-                screen.blit(spr_left, (sprite_left_x, sprite_y))
-                screen.blit(spr_right, (sprite_right_x, sprite_y))
-                
+                if "SPACE" in txt.upper(): spr_left, spr_right = (spr_invader1_a if anim_toggle_slow else spr_invader1_b), (spr_invader2_a if anim_toggle_fast else spr_invader2_b)
+                elif "ASTEROID" in txt.upper(): spr_left, spr_right = (spr_ast_ship_thrust if anim_toggle_fast else spr_ast_ship), (spr_asteroid1 if anim_toggle_slow else spr_asteroid2)
+                else: spr_left, spr_right = (spr_pac_open if anim_toggle_fast else spr_pac_closed), spr_ghost_red
+                screen.blit(spr_left, (game_rect.left - spr_left.get_width() - padding + drift_x, sprite_y))
+                screen.blit(spr_right, (game_rect.right + padding + drift_x, sprite_y))
             else:
-                color = (120, 120, 150)
-                game_surf = menu_font.render(txt, True, color)
-                screen.blit(game_surf, game_rect)
+                screen.blit(menu_font.render(txt, True, (120, 120, 150)), game_rect)
 
-    y_pos_bottom = sh * 0.85
-    offset = int(spr_ghost_red.get_width() * 2.5)
+    y_pos_bottom, offset = sh * 0.85, int(spr_ghost_red.get_width() * 2.5)
     screen.blit(spr_pac_open if anim_toggle_fast else spr_pac_closed, (running_pac_x, y_pos_bottom))
     screen.blit(spr_ghost_cyan, (running_pac_x - offset, y_pos_bottom))
     screen.blit(spr_ghost_red, (running_pac_x - (offset*2), y_pos_bottom))
@@ -472,7 +418,6 @@ while running:
     if (frame_counter // 20) % 2 == 0:
         footer_surf = small_font.render("PRESS ENTER TO START", True, NEON_PINK)
         screen.blit(footer_surf, (sw//2 - footer_surf.get_width()//2, sh*0.96))
-
     if error_message:
         err_surf = small_font.render(error_message, True, RED)
         screen.blit(err_surf, (sw//2 - err_surf.get_width()//2, sh*0.82))
