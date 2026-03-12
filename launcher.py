@@ -7,7 +7,6 @@ import math
 import json
 import random
 
-# --- PFAD-LOGIK ---
 if getattr(sys, "frozen", False):
     RESOURCE_PATH = os.path.dirname(sys.executable)
 else:
@@ -22,14 +21,12 @@ def get_path(rel_path):
 def get_game_path(rel_path):
     return os.path.abspath(os.path.join(GAME_BASE_PATH, rel_path))
 
-# --- INITIALISIERUNG ---
 pygame.init()
 pygame.mouse.set_visible(True)
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 sw, sh = screen.get_size()
 clock = pygame.time.Clock()
 
-# --- COLORS ---
 BG_COLOR = (5, 5, 15)      
 NEON_CYAN = (0, 255, 255)
 NEON_PINK = (255, 20, 147)
@@ -43,7 +40,6 @@ DARK_PINK = (100, 10, 60)
 DARK_RED = (100, 0, 0)
 PUNK_COLORS = [NEON_CYAN, NEON_PINK, NEON_YELLOW, NEON_GREEN, NEON_RED]
 
-# --- FONTS ---
 try:
     font_path = get_path("assets/arcade.ttf")
     title_font = pygame.font.Font(font_path, int(sh * 0.12))
@@ -54,7 +50,6 @@ except:
     menu_font = pygame.font.Font(None, int(sh * 0.06))
     small_font = pygame.font.Font(None, int(sh * 0.03))
 
-# --- CONFIG LADEN ---
 CONFIG_FILE = os.path.join(RESOURCE_PATH, "games.json")
 
 def load_games_config():
@@ -69,12 +64,10 @@ def load_games_config():
                     game["paths"][os_name] = get_game_path(rel_path)
             return loaded_games
     except Exception as e:
-        print(f"Fehler beim Laden der Config: {e}")
         return []
 
 games = load_games_config()
 
-# --- PIXEL ART GENERATOR ---
 INVADER_1 = [
     "  #     #  ",
     "   #   #   ",
@@ -146,6 +139,53 @@ GHOST = [
     " #    ##    # "
 ]
 
+ASTEROIDS_SHIP = [
+    "     #     ",
+    "    ###    ",
+    "   ##W##   ",
+    "  #######  ",
+    " ######### ",
+    "###########",
+    "###     ###",
+    "##       ##"
+]
+
+ASTEROIDS_SHIP_THRUST = [
+    "     #     ",
+    "    ###    ",
+    "   ##W##   ",
+    "  #######  ",
+    " ######### ",
+    "###########",
+    "### ### ###",
+    "##  ###  ##",
+    "     #     "
+]
+
+ASTEROID_1 = [
+    "   ######  ",
+    " ######### ",
+    "###########",
+    "####   ####",
+    "###     ###",
+    "#####   ###",
+    "###########",
+    " ######### ",
+    "  #######  "
+]
+
+ASTEROID_2 = [
+    "  ######   ",
+    " ########  ",
+    "########## ",
+    "###   #### ",
+    "##     ### ",
+    "####   ####",
+    " ##########",
+    "  ######## ",
+    "   ######  "
+]
+
 def create_sprite(matrix, main_color, scale):
     w, h = len(matrix[0]), len(matrix)
     surf = pygame.Surface((w * scale, h * scale), pygame.SRCALPHA)
@@ -166,7 +206,11 @@ spr_pac_closed = create_sprite(PACMAN_CLOSED, NEON_YELLOW, scale_size)
 spr_ghost_red = create_sprite(GHOST, RED, scale_size)
 spr_ghost_cyan = create_sprite(GHOST, NEON_CYAN, scale_size)
 
-# --- EFFEKTE ---
+spr_ast_ship = create_sprite(ASTEROIDS_SHIP, NEON_PINK, scale_size)
+spr_ast_ship_thrust = create_sprite(ASTEROIDS_SHIP_THRUST, NEON_PINK, scale_size)
+spr_asteroid1 = create_sprite(ASTEROID_1, NEON_CYAN, scale_size)
+spr_asteroid2 = create_sprite(ASTEROID_2, NEON_CYAN, scale_size)
+
 stars = [[random.randint(0, sw), random.randint(0, sh), random.randint(1, 3)] for _ in range(100)]
 scanline_surf = pygame.Surface((sw, sh), pygame.SRCALPHA)
 bloom_grid_surf = pygame.Surface((sw, sh), pygame.SRCALPHA)
@@ -198,8 +242,7 @@ def draw_punk_underline(rect, frame):
         screen.blit(glow_surf, (block_rect.x - 2, block_rect.y - 2))
         pygame.draw.rect(screen, color, block_rect, 0, 2)
 
-# --- RAUMSCHIFF LADE-LOGIK ---
-base_ship_images = [] # Unrotierte Basis-Bilder
+base_ship_images = []
 ship_loaded = False
 ship_active = False
 ship_x, ship_y = -1000, -1000
@@ -218,18 +261,14 @@ try:
         boost_img = pygame.image.load(boost_path).convert_alpha()
         w_boost, h_boost = boost_img.get_size()
         
-        # Berechne neue Gesamthöhe und platziere Boost exakt an der Unterseite des Schiffs
         max_w = max(w_idle, w_boost)
         total_h = h_idle + h_boost
         combined_img = pygame.Surface((max_w, total_h), pygame.SRCALPHA)
         
-        # Schiff oben zentriert
         combined_img.blit(idle_img, ((max_w - w_idle) // 2, 0))
-        # Feuer unten zentriert (mit leichtem Overlap, damit es besser aussieht)
         overlap = int(h_idle * 0.1)
         combined_img.blit(boost_img, ((max_w - w_boost) // 2, h_idle - overlap))
         
-        # Größe dynamisch anpassen
         target_height = int(sh * 0.12)
         ratio = target_height / total_h
         target_width = int(max_w * ratio)
@@ -240,9 +279,8 @@ try:
     if len(base_ship_images) == 3:
         ship_loaded = True
 except Exception as e:
-    print(f"Konnte Raumschiff-Sprites nicht komplett laden: {e}")
+    pass
 
-# --- HAUPTSCHLEIFE ---
 selected_index = 0
 error_message = ""
 frame_counter = 0
@@ -273,12 +311,10 @@ while running:
                 if aktuelles_os in path_dict:
                     exe_path = path_dict[aktuelles_os]
                     
-                    # Logik für Mac .app Bundles
                     is_mac_app = aktuelles_os == "Darwin" and exe_path.endswith(".app")
                     
                     if os.path.exists(exe_path):
                         try:
-                            # 1. OPTISCHER TRICK: Ladebildschirm zeichnen
                             screen.fill(BG_COLOR)
                             loading_txt = title_font.render("LOADING...", True, NEON_CYAN)
                             screen.blit(loading_txt, loading_txt.get_rect(center=(sw//2, sh//2)))
@@ -286,18 +322,15 @@ while running:
                             
                             spiel_ordner = os.path.dirname(exe_path)
 
-                            # 2. MAC-FIX: Aus dem Fullscreen-Space ausbrechen!
                             if aktuelles_os == "Darwin":
                                 pygame.display.set_mode((sw, sh)) 
                                 pygame.display.iconify() 
                             
-                            # 3. Spiel starten
                             if is_mac_app:
                                 subprocess.run(["open", "-W", exe_path], cwd=spiel_ordner)
                             else:
                                 subprocess.run([exe_path], cwd=spiel_ordner)
                             
-                            # 4. MAC-FIX: Nach dem Spiel den Launcher wieder in den Fullscreen holen
                             if aktuelles_os == "Darwin":
                                 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                             
@@ -323,19 +356,15 @@ while running:
     anim_toggle_fast = (frame_counter // 15) % 2 == 0
     anim_toggle_slow = (frame_counter // 25) % 2 == 0
 
-    # --- RENDERING ---
     screen.fill(BG_COLOR)
     screen.blit(bloom_grid_surf, (0, 0))
 
-    # Sterne
     for star in stars:
         color = (150,150,150) if star[2]==1 else WHITE
         pygame.draw.rect(screen, color, (star[0], star[1], star[2], star[2]))
 
-    # --- FLIEGENDES RAUMSCHIFF LOGIK ---
     if ship_loaded:
         if not ship_active:
-            # Zufälligen Start und Zielpunkt an den Rändern bestimmen
             side = random.choice(['top', 'right', 'bottom', 'left'])
             if side == 'top':
                 ship_x, ship_y = random.randint(0, sw), -200
@@ -346,11 +375,10 @@ while running:
             elif side == 'left':
                 ship_x, ship_y = -200, random.randint(0, sh)
                 target_x, target_y = sw + 200, random.randint(0, sh)
-            else: # right
+            else:
                 ship_x, ship_y = sw + 200, random.randint(0, sh)
                 target_x, target_y = -200, random.randint(0, sh)
 
-            # Geschwindigkeitsvektor und Winkel berechnen
             dx = target_x - ship_x
             dy = target_y - ship_y
             dist = math.hypot(dx, dy)
@@ -360,29 +388,23 @@ while running:
             else:
                 ship_vx, ship_vy = ship_speed, 0
 
-            # Pygame's 0 Grad zeigt nach rechts. Unser Schiff zeigt nach oben (-90 Grad Anpassung)
             angle = math.degrees(math.atan2(-dy, dx)) - 90
             
-            # Sprites einmalig für diese Flugbahn drehen
             ship_rotated_frames = [pygame.transform.rotate(img, angle) for img in base_ship_images]
             ship_active = True
 
-        # Schiff bewegen
         ship_x += ship_vx
         ship_y += ship_vy
 
-        # Schiff zurücksetzen, wenn es weit aus dem Bildschirm geflogen ist
         if ship_x < -300 or ship_x > sw + 300 or ship_y < -300 or ship_y > sh + 300:
             ship_active = False
 
-        # Schiff zeichnen
         if ship_active:
             boost_index = (frame_counter // 5) % 3
             current_ship = ship_rotated_frames[boost_index]
             ship_rect = current_ship.get_rect(center=(int(ship_x), int(ship_y)))
             screen.blit(current_ship, ship_rect)
 
-    # CHROMATIC ABERRATION TITEL
     glow_y = math.sin(frame_counter * 0.05) * (sh * 0.01)
     shift_x = math.sin(frame_counter * 0.1) * (sw * 0.005)
     title_rect = title_font.render("DIGITS ARCADE", True, WHITE).get_rect(center=(sw//2, sh*0.15))
@@ -393,7 +415,6 @@ while running:
     screen.blit(title_font.render("DIGITS ARCADE", True, WHITE), title_rect.move(0, glow_y))
     draw_punk_underline(title_rect, frame_counter)
 
-    # Menü
     if not games:
         err_surf = menu_font.render("games.json FEHLT", True, RED)
         screen.blit(err_surf, err_surf.get_rect(center=(sw//2, sh*0.5)))
@@ -422,11 +443,14 @@ while running:
                 
                 sprite_left_x = game_rect.left - spr_pac_open.get_width() - padding + drift_x
                 sprite_right_x = game_rect.right + padding + drift_x
-                sprite_y = game_rect.centery - (spr_pac_open.get_height() // 2)
+                sprite_y = game_rect.centery - (spr_pac_open.get_height() // 2) + int(sh * 0.010)
                 
                 if "SPACE" in txt.upper():
                     spr_left = spr_invader1_a if anim_toggle_slow else spr_invader1_b
                     spr_right = spr_invader2_a if anim_toggle_fast else spr_invader2_b
+                elif "ASTEROID" in txt.upper():
+                    spr_left = spr_ast_ship_thrust if anim_toggle_fast else spr_ast_ship
+                    spr_right = spr_asteroid1 if anim_toggle_slow else spr_asteroid2
                 else:
                     spr_left = spr_pac_open if anim_toggle_fast else spr_pac_closed
                     spr_right = spr_ghost_red
@@ -439,14 +463,12 @@ while running:
                 game_surf = menu_font.render(txt, True, color)
                 screen.blit(game_surf, game_rect)
 
-    # Laufender Pac-Man unten
     y_pos_bottom = sh * 0.85
     offset = int(spr_ghost_red.get_width() * 2.5)
     screen.blit(spr_pac_open if anim_toggle_fast else spr_pac_closed, (running_pac_x, y_pos_bottom))
     screen.blit(spr_ghost_cyan, (running_pac_x - offset, y_pos_bottom))
     screen.blit(spr_ghost_red, (running_pac_x - (offset*2), y_pos_bottom))
 
-    # Footer
     if (frame_counter // 20) % 2 == 0:
         footer_surf = small_font.render("PRESS ENTER TO START", True, NEON_PINK)
         screen.blit(footer_surf, (sw//2 - footer_surf.get_width()//2, sh*0.96))
