@@ -12,7 +12,7 @@
             "display_name": "PAC-MAN",
             "paths": {
                 "Windows": "../spiele/Pac-Man/game.exe",
-                "Darwin": "../spiele/Pac-Man/game", 
+                "Darwin": "../spiele/Pac-Man/game.app", 
                 "Linux": "../spiele/Pac-Man/game"
             }
         }
