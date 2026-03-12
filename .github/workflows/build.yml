@@ -18,7 +18,7 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: windows-x64
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             artifact_name: linux-x64
           - os: macos-latest
             artifact_name: macos-arm64
@@ -52,7 +52,12 @@ jobs:
 
       - name: Archivieren
         shell: bash
-        run: python -c "import shutil; shutil.make_archive('Launcher-${{ matrix.artifact_name }}', 'zip', 'dist/launcher')"
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            cd dist/launcher && zip -r "../../Launcher-${{ matrix.artifact_name }}.zip" .
+          else
+            python -c "import shutil; shutil.make_archive('Launcher-${{ matrix.artifact_name }}', 'zip', 'dist/launcher')"
+          fi
 
       # Immer hochladen – wird von release-Job oder manuell genutzt
       - name: Artifact hochladen
@@ -68,7 +73,7 @@ jobs:
     needs: build                  # Wartet bis ALLE 4 Matrix-Jobs fertig sind
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
-      contents: write             # Schreibrecht nur in diesem einen Job
+      contents: write              # Schreibrecht nur in diesem einen Job
     steps:
       - name: Alle Artifacts herunterladen
         uses: actions/download-artifact@v4
