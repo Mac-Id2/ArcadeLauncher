@@ -261,10 +261,13 @@ try:
         p = get_path(f"assets/{filename}") if os.path.exists(get_path(f"assets/{filename}")) else get_path(filename)
         b_img = pygame.image.load(p).convert_alpha()
         
-        combined = pygame.Surface((max(idle_img.get_width(), b_img.get_width()), idle_img.get_height() + b_img.get_height() - 15), pygame.SRCALPHA)
-        flame_y = idle_img.get_height() - 15 
+        # --- FIX: Originale Größen-Mathematik beibehalten! ---
+        combined = pygame.Surface((max(idle_img.get_width(), b_img.get_width()), idle_img.get_height() + b_img.get_height()), pygame.SRCALPHA)
         
-        combined.blit(b_img, ((combined.get_width() - b_img.get_width()) // 2, flame_y))
+        # 1. Flamme zuerst malen (damit sie im Hintergrund ist) und 20 Pixel unter das Schiff schieben
+        combined.blit(b_img, ((combined.get_width() - b_img.get_width()) // 2, idle_img.get_height() - 20))
+        
+        # 2. Schiff als zweites malen (deckt die obere Kante der Flamme perfekt ab)
         combined.blit(idle_img, ((combined.get_width() - idle_img.get_width()) // 2, 0))
         
         new_h = int(sh * 0.12)
