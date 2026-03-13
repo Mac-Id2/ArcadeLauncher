@@ -24,7 +24,6 @@ def get_game_path(rel_path):
 
 # --- Pygame Setup ---
 pygame.init()
-# FIX 1: Mauszeiger verstecken für echte Arcade-Optik!
 pygame.mouse.set_visible(False)
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 sw, sh = screen.get_size()
@@ -145,7 +144,6 @@ GHOST = [
     " #    ##    # "
 ]
 
-# FIX 2: Matrizen auf exakt gleiche Breiten korrigiert, damit keine Seiten mehr abgeschnitten werden!
 ASTEROIDS_SHIP = [
     "     #     ",
     "    ###    ",
@@ -229,8 +227,6 @@ for x in range(0, sw, int(sw*0.05)):
 for y in range(0, sh, int(sh*0.05)): 
     pygame.draw.line(bloom_grid_surf, (0, 20, 50, 50), (0, y), (sw, y), 2)
 
-
-# FIX 3: Scanlines werden nur noch EINMAL vor dem Loop generiert! (Löst massives Menü-Lagging)
 scanline_surf = pygame.Surface((sw, sh + 10), pygame.SRCALPHA)
 for y in range(0, sh + 10, 6):
     pygame.draw.line(scanline_surf, (0, 0, 0, 160), (0, y), (sw, y), 2)
@@ -247,7 +243,6 @@ def draw_punk_underline(rect, frame):
         color = PUNK_COLORS[(i + (frame // 10)) % len(PUNK_COLORS)]
         offset_y = math.sin(frame * 0.2 + i * 0.5) * (sh * 0.003)
         block_rect = pygame.Rect(rect.left + i * block_width, underline_y + offset_y, block_width - 2, sh * 0.005)
-        # Kantenglättung entfernt (verursachte Grafik-Bugs bei kleinen Auflösungen)
         pygame.draw.rect(screen, color, block_rect)
 
 # --- Schiff Background Logik ---
@@ -265,12 +260,17 @@ try:
     for filename in ["player-boost-default.png", "player-boost-left.png", "player-boost-right.png"]:
         p = get_path(f"assets/{filename}") if os.path.exists(get_path(f"assets/{filename}")) else get_path(filename)
         b_img = pygame.image.load(p).convert_alpha()
-        combined = pygame.Surface((max(idle_img.get_width(), b_img.get_width()), idle_img.get_height() + b_img.get_height()), pygame.SRCALPHA)
-        combined.blit(idle_img, ((combined.get_width()-idle_img.get_width())//2, 0))
-        combined.blit(b_img, ((combined.get_width()-b_img.get_width())//2, idle_img.get_height()-5))
+        
+        combined = pygame.Surface((max(idle_img.get_width(), b_img.get_width()), idle_img.get_height() + b_img.get_height() - 15), pygame.SRCALPHA)
+        flame_y = idle_img.get_height() - 15 
+        
+        combined.blit(b_img, ((combined.get_width() - b_img.get_width()) // 2, flame_y))
+        combined.blit(idle_img, ((combined.get_width() - idle_img.get_width()) // 2, 0))
+        
         new_h = int(sh * 0.12)
         new_w = int(combined.get_width() * (new_h / combined.get_height()))
         base_ship_images.append(pygame.transform.scale(combined, (new_w, new_h)))
+        
     if len(base_ship_images) == 3: ship_loaded = True
 except: pass
 
@@ -324,7 +324,6 @@ while running:
                             else:
                                 subprocess.run([exe_p], cwd=game_dir, check=True, env=clean_env)
                             
-                            # Linux Fullscreen-Reinit (Behebt Black-Screens nach dem Beenden eines Spiels)
                             if aktuelles_os in ["Darwin", "Linux"]: 
                                 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                             pygame.event.clear()
@@ -428,7 +427,6 @@ while running:
             
             if sel:
                 for off in [2, -2]:
-                    # FIX 4: Sauberer Schatten durch echtes Alpha-Blending!
                     shadow_surf = menu_font.render(txt, True, (200, 200, 0))
                     shadow_surf.set_alpha(150)
                     screen.blit(shadow_surf, m_rect.move(off, off))
