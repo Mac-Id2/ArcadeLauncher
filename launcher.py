@@ -24,7 +24,8 @@ def get_game_path(rel_path):
 
 # --- Pygame Setup ---
 pygame.init()
-pygame.mouse.set_visible(True)
+# FIX 1: Mauszeiger verstecken für echte Arcade-Optik!
+pygame.mouse.set_visible(False)
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 sw, sh = screen.get_size()
 clock = pygame.time.Clock()
@@ -144,6 +145,7 @@ GHOST = [
     " #    ##    # "
 ]
 
+# FIX 2: Matrizen auf exakt gleiche Breiten korrigiert, damit keine Seiten mehr abgeschnitten werden!
 ASTEROIDS_SHIP = [
     "     #     ",
     "    ###    ",
@@ -168,10 +170,10 @@ ASTEROIDS_SHIP_THRUST = [
 ]
 
 ASTEROID_1 = [
-    "    ######  ",
+    "   ######  ",
     " ######### ",
     "###########",
-    "####    ####",
+    "####   ####",
     "###     ###",
     "#####   ###",
     "###########",
@@ -183,9 +185,9 @@ ASTEROID_2 = [
     "  ######   ",
     " ########  ",
     "########## ",
-    "###    #### ",
-    "##     ### ",
-    "####    ####",
+    "###    ####",
+    "##      ###",
+    "####   ####",
     " ##########",
     "  ######## ",
     "   ######  "
@@ -227,22 +229,26 @@ for x in range(0, sw, int(sw*0.05)):
 for y in range(0, sh, int(sh*0.05)): 
     pygame.draw.line(bloom_grid_surf, (0, 20, 50, 50), (0, y), (sw, y), 2)
 
+
+# FIX 3: Scanlines werden nur noch EINMAL vor dem Loop generiert! (Löst massives Menü-Lagging)
+scanline_surf = pygame.Surface((sw, sh + 10), pygame.SRCALPHA)
+for y in range(0, sh + 10, 6):
+    pygame.draw.line(scanline_surf, (0, 0, 0, 160), (0, y), (sw, y), 2)
+
 def draw_scanlines(frame):
-    s = pygame.Surface((sw, sh), pygame.SRCALPHA)
-    offset = (frame // 4) % 8
-    for y in range(offset, sh, 6):
-        pygame.draw.line(s, (0, 0, 0, 160), (0, y), (sw, y), 2)
-    screen.blit(s, (0, 0))
+    offset = (frame // 4) % 6
+    screen.blit(scanline_surf, (0, -offset))
 
 def draw_punk_underline(rect, frame):
     num_blocks = 20
-    block_width = rect.width // num_blocks
+    block_width = max(1, rect.width // num_blocks)
     underline_y = rect.bottom + sh * 0.015
     for i in range(num_blocks):
         color = PUNK_COLORS[(i + (frame // 10)) % len(PUNK_COLORS)]
         offset_y = math.sin(frame * 0.2 + i * 0.5) * (sh * 0.003)
         block_rect = pygame.Rect(rect.left + i * block_width, underline_y + offset_y, block_width - 2, sh * 0.005)
-        pygame.draw.rect(screen, color, block_rect, 0, 2)
+        # Kantenglättung entfernt (verursachte Grafik-Bugs bei kleinen Auflösungen)
+        pygame.draw.rect(screen, color, block_rect)
 
 # --- Schiff Background Logik ---
 base_ship_images = []
@@ -318,7 +324,9 @@ while running:
                             else:
                                 subprocess.run([exe_p], cwd=game_dir, check=True, env=clean_env)
                             
-                            if aktuelles_os == "Darwin": screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                            # Linux Fullscreen-Reinit (Behebt Black-Screens nach dem Beenden eines Spiels)
+                            if aktuelles_os in ["Darwin", "Linux"]: 
+                                screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                             pygame.event.clear()
 
                         except subprocess.CalledProcessError as e:
@@ -398,17 +406,17 @@ while running:
     # Titel Rendering
     glow_y = math.sin(frame_counter * 0.05) * (sh * 0.01)
     shift_x = math.sin(frame_counter * 0.1) * (sw * 0.005)
-    t_rect = title_font.render("DIGITS ARCADE", True, WHITE).get_rect(center=(sw//2, sh*0.15))
+    t_rect = title_font.render("DIGITS ARCADE", True, WHITE).get_rect(center=(sw//2, int(sh*0.15)))
     
-    screen.blit(title_font.render("DIGITS ARCADE", True, (80, 0, 0)), t_rect.move(-6 - shift_x, 6 + glow_y))
-    screen.blit(title_font.render("DIGITS ARCADE", True, (0, 100, 100)), t_rect.move(6 + shift_x, -6 + glow_y))
-    screen.blit(title_font.render("DIGITS ARCADE", True, WHITE), t_rect.move(0, glow_y))
+    screen.blit(title_font.render("DIGITS ARCADE", True, (80, 0, 0)), t_rect.move(int(-6 - shift_x), int(6 + glow_y)))
+    screen.blit(title_font.render("DIGITS ARCADE", True, (0, 100, 100)), t_rect.move(int(6 + shift_x), int(-6 + glow_y)))
+    screen.blit(title_font.render("DIGITS ARCADE", True, WHITE), t_rect.move(0, int(glow_y)))
     draw_punk_underline(t_rect, frame_counter)
 
     # Menü-Einträge
     if not games:
         err_surf = menu_font.render("games.json FEHLT", True, RED)
-        screen.blit(err_surf, err_surf.get_rect(center=(sw//2, sh*0.5)))
+        screen.blit(err_surf, err_surf.get_rect(center=(sw//2, int(sh*0.5))))
     else:
         for i, game in enumerate(games):
             sel = (i == selected_index)
@@ -416,11 +424,15 @@ while running:
             
             wx = math.sin(frame_counter*0.1)*8 if sel else 0
             wy = math.cos(frame_counter*0.1)*2 if sel else 0
-            m_rect = menu_font.render(txt, True, WHITE).get_rect(center=(sw//2 + wx, sh*0.48 + i*sh*0.12 + wy))
+            m_rect = menu_font.render(txt, True, WHITE).get_rect(center=(int(sw//2 + wx), int(sh*0.48 + i*sh*0.12 + wy)))
             
             if sel:
                 for off in [2, -2]:
-                    screen.blit(menu_font.render(txt, True, (200, 200, 0, 150)), m_rect.move(off, off))
+                    # FIX 4: Sauberer Schatten durch echtes Alpha-Blending!
+                    shadow_surf = menu_font.render(txt, True, (200, 200, 0))
+                    shadow_surf.set_alpha(150)
+                    screen.blit(shadow_surf, m_rect.move(off, off))
+                    
                 screen.blit(menu_font.render(txt, True, NEON_YELLOW), m_rect)
                 
                 # Menü-Sprites (Pac-Man, Invader, Asteroids)
@@ -437,25 +449,25 @@ while running:
                 else:
                     s_l, s_r = (spr_pac_open if anim_toggle_fast else spr_pac_closed), spr_ghost_red
                     
-                screen.blit(s_l, (sl_x, sy))
-                screen.blit(s_r, (sr_x, sy))
+                screen.blit(s_l, (int(sl_x), int(sy)))
+                screen.blit(s_r, (int(sr_x), int(sy)))
             else:
                 screen.blit(menu_font.render(txt, True, (120, 120, 150)), m_rect)
 
     # Laufender Pac-Man am Boden
     y_btm = sh * 0.85
     off_btm = int(spr_ghost_red.get_width() * 2.5)
-    screen.blit(spr_pac_open if anim_toggle_fast else spr_pac_closed, (running_pac_x, y_btm))
-    screen.blit(spr_ghost_cyan, (running_pac_x - off_btm, y_btm))
-    screen.blit(spr_ghost_red, (running_pac_x - (off_btm * 2), y_btm))
+    screen.blit(spr_pac_open if anim_toggle_fast else spr_pac_closed, (int(running_pac_x), int(y_btm)))
+    screen.blit(spr_ghost_cyan, (int(running_pac_x - off_btm), int(y_btm)))
+    screen.blit(spr_ghost_red, (int(running_pac_x - (off_btm * 2)), int(y_btm)))
 
     if (frame_counter // 20) % 2 == 0:
         f_surf = small_font.render("PRESS ENTER TO START", True, NEON_PINK)
-        screen.blit(f_surf, (sw//2 - f_surf.get_width()//2, sh*0.96))
+        screen.blit(f_surf, (int(sw//2 - f_surf.get_width()//2), int(sh*0.96)))
 
     if error_message:
         e_surf = small_font.render(error_message, True, RED)
-        screen.blit(e_surf, (sw//2 - e_surf.get_width()//2, sh*0.82))
+        screen.blit(e_surf, (int(sw//2 - e_surf.get_width()//2), int(sh*0.82)))
 
     draw_scanlines(frame_counter)
     pygame.display.flip()
