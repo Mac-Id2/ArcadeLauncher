@@ -245,6 +245,7 @@ def draw_punk_underline(rect, frame):
         block_rect = pygame.Rect(rect.left + i * block_width, underline_y + offset_y, block_width - 2, sh * 0.005)
         pygame.draw.rect(screen, color, block_rect)
 
+# --- Schiff Background Logik ---
 base_ship_images = []
 ship_loaded = False
 ship_active = False
@@ -262,10 +263,12 @@ try:
         
         combined = pygame.Surface((max(idle_img.get_width(), b_img.get_width()), idle_img.get_height() + b_img.get_height()), pygame.SRCALPHA)
         
-        # FIX: Nur 8 Pixel nach oben schieben statt 20, sonst versteckt sich die kleine Flamme komplett!
-        combined.blit(b_img, ((combined.get_width() - b_img.get_width()) // 2, idle_img.get_height() - 8))
+        flame_y = idle_img.get_height() - 2
         
-        # Schiff als zweites malen (deckt die obere Kante der Flamme perfekt ab)
+        # 1. Flamme im Hintergrund malen
+        combined.blit(b_img, ((combined.get_width() - b_img.get_width()) // 2, flame_y))
+        
+        # 2. Schiff drüberlegen
         combined.blit(idle_img, ((combined.get_width() - idle_img.get_width()) // 2, 0))
         
         new_h = int(sh * 0.12)
