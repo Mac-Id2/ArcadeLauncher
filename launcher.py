@@ -71,7 +71,7 @@ def load_games_config():
 
 games = load_games_config()
 
-# --- SPRITE MATRIZEN ---
+# --- PIXEL ART MATRIZEN ---
 
 INVADER_1 = [
     "  #     #  ",
@@ -192,7 +192,6 @@ ASTEROID_2 = [
 ]
 
 def create_sprite(matrix, main_color, scale):
-    # Fix: Quadratische Pixel durch Verwendung eines einzigen Scale-Werts
     w, h = len(matrix[0]), len(matrix)
     surf = pygame.Surface((w * scale, h * scale), pygame.SRCALPHA)
     for y, row in enumerate(matrix):
@@ -205,7 +204,6 @@ def create_sprite(matrix, main_color, scale):
                 pygame.draw.rect(surf, color, (x * scale, y * scale, scale, scale))
     return surf
 
-# Feste Skalierung für alle Sprites (4-8 Pixel pro Matrix-Punkt)
 scale_size = max(4, int(sh * 0.008))
 
 spr_invader1_a = create_sprite(INVADER_1, NEON_GREEN, scale_size)
@@ -224,8 +222,10 @@ spr_asteroid2 = create_sprite(ASTEROID_2, NEON_CYAN, scale_size)
 # --- Effekte ---
 stars = [[random.randint(0, sw), random.randint(0, sh), random.randint(1, 3)] for _ in range(100)]
 bloom_grid_surf = pygame.Surface((sw, sh), pygame.SRCALPHA)
-for x in range(0, sw, int(sw*0.05)): pygame.draw.line(bloom_grid_surf, (0, 20, 50, 50), (x, 0), (x, sh), 2)
-for y in range(0, sh, int(sh*0.05)): pygame.draw.line(bloom_grid_surf, (0, 20, 50, 50), (0, y), (sw, y), 2)
+for x in range(0, sw, int(sw*0.05)): 
+    pygame.draw.line(bloom_grid_surf, (0, 20, 50, 50), (x, 0), (x, sh), 2)
+for y in range(0, sh, int(sh*0.05)): 
+    pygame.draw.line(bloom_grid_surf, (0, 20, 50, 50), (0, y), (sw, y), 2)
 
 def draw_scanlines(frame):
     s = pygame.Surface((sw, sh), pygame.SRCALPHA)
@@ -296,12 +296,15 @@ while running:
                     if os.path.exists(exe_p):
                         try:
                             game_dir = os.path.dirname(exe_p)
+                            
+                            # --- FIX FÜR LINUX KONFLIKTE ---
+                            clean_env = os.environ.copy()
+                            for var in ['LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONHOME', 'PYTHONPATH']:
+                                clean_env.pop(var, None)
+
                             if aktuelles_os in ["Linux", "Darwin"]:
-                                # Rechte für den gesamten Ordner fixen (Godot braucht das für .pck)
-                                for f in os.listdir(game_dir):
-                                    f_p = os.path.join(game_dir, f)
-                                    try: os.chmod(f_p, os.stat(f_p).st_mode | 0o111)
-                                    except: pass
+                                try: os.chmod(exe_p, os.stat(exe_p).st_mode | 0o111)
+                                except: pass
 
                             screen.fill(BG_COLOR)
                             l_txt = title_font.render("LOADING...", True, NEON_CYAN)
@@ -311,18 +314,15 @@ while running:
                             if aktuelles_os == "Darwin": pygame.display.iconify()
                             
                             if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
-                                subprocess.run(["open", "-W", exe_p], cwd=game_dir)
+                                subprocess.run(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
                             else:
-                                subprocess.run([exe_p], cwd=game_dir, check=True)
+                                subprocess.run([exe_p], cwd=game_dir, check=True, env=clean_env)
                             
                             if aktuelles_os == "Darwin": screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                             pygame.event.clear()
 
                         except subprocess.CalledProcessError as e:
-                            if e.returncode == -11 or e.returncode == 139:
-                                error_message = "CRASH -11: VULKAN/DRIVER ERROR"
-                            else:
-                                error_message = f"GAME CRASHED (CODE {e.returncode})"
+                            error_message = f"GAME CRASHED (CODE {e.returncode})"
                         except Exception as e:
                             error_message = f"ERROR: {str(e)[:25]}"
                     else:
@@ -331,58 +331,131 @@ while running:
                     error_message = "OS NOT SUPPORTED"
             elif event.key == pygame.K_ESCAPE: running = False
 
+    # Stern-Animation
+    for star in stars:
+        star[1] += star[2]
+        if star[1] > sh:
+            star[1], star[0] = 0, random.randint(0, sw)
+
+    # Pac-Man Lauf-Animation
+    running_pac_x += 4
+    if running_pac_x > sw + 500:
+        running_pac_x = -200
+
+    anim_toggle_fast = (frame_counter // 15) % 2 == 0
+    anim_toggle_slow = (frame_counter // 25) % 2 == 0
+
     # Rendering
     screen.fill(BG_COLOR)
     screen.blit(bloom_grid_surf, (0, 0))
-    for s in stars:
-        s[1] = (s[1] + s[2]) % sh
-        pygame.draw.rect(screen, (WHITE if s[2] > 1 else (150, 150, 150)), (s[0], s[1], s[2], s[2]))
 
-    # Titel
+    for star in stars:
+        color = (150,150,150) if star[2]==1 else WHITE
+        pygame.draw.rect(screen, color, (star[0], star[1], star[2], star[2]))
+
+    # --- Fliegendes Schiff im Hintergrund ---
+    if ship_loaded:
+        if not ship_active:
+            side = random.choice(['top', 'right', 'bottom', 'left'])
+            if side == 'top':
+                ship_x, ship_y = random.randint(0, sw), -200
+                target_x, target_y = random.randint(0, sw), sh + 200
+            elif side == 'bottom':
+                ship_x, ship_y = random.randint(0, sw), sh + 200
+                target_x, target_y = random.randint(0, sw), -200
+            elif side == 'left':
+                ship_x, ship_y = -200, random.randint(0, sh)
+                target_x, target_y = sw + 200, random.randint(0, sh)
+            else:
+                ship_x, ship_y = sw + 200, random.randint(0, sh)
+                target_x, target_y = -200, random.randint(0, sh)
+
+            dx = target_x - ship_x
+            dy = target_y - ship_y
+            dist = math.hypot(dx, dy)
+            if dist != 0:
+                ship_vx = (dx / dist) * ship_speed
+                ship_vy = (dy / dist) * ship_speed
+            else:
+                ship_vx, ship_vy = ship_speed, 0
+
+            angle = math.degrees(math.atan2(-dy, dx)) - 90
+            ship_rotated_frames = [pygame.transform.rotate(img, angle) for img in base_ship_images]
+            ship_active = True
+
+        ship_x += ship_vx
+        ship_y += ship_vy
+
+        if ship_x < -300 or ship_x > sw + 300 or ship_y < -300 or ship_y > sh + 300:
+            ship_active = False
+
+        if ship_active:
+            boost_index = (frame_counter // 5) % 3
+            current_ship = ship_rotated_frames[boost_index]
+            ship_rect = current_ship.get_rect(center=(int(ship_x), int(ship_y)))
+            screen.blit(current_ship, ship_rect)
+
+    # Titel Rendering
+    glow_y = math.sin(frame_counter * 0.05) * (sh * 0.01)
+    shift_x = math.sin(frame_counter * 0.1) * (sw * 0.005)
     t_rect = title_font.render("DIGITS ARCADE", True, WHITE).get_rect(center=(sw//2, sh*0.15))
-    screen.blit(title_font.render("DIGITS ARCADE", True, (80, 0, 0)), t_rect.move(4, 4))
-    screen.blit(title_font.render("DIGITS ARCADE", True, WHITE), t_rect)
+    
+    screen.blit(title_font.render("DIGITS ARCADE", True, (80, 0, 0)), t_rect.move(-6 - shift_x, 6 + glow_y))
+    screen.blit(title_font.render("DIGITS ARCADE", True, (0, 100, 100)), t_rect.move(6 + shift_x, -6 + glow_y))
+    screen.blit(title_font.render("DIGITS ARCADE", True, WHITE), t_rect.move(0, glow_y))
     draw_punk_underline(t_rect, frame_counter)
 
-    # Menü
+    # Menü-Einträge
     if not games:
-        err = menu_font.render("games.json missing", True, RED)
-        screen.blit(err, err.get_rect(center=(sw//2, sh*0.5)))
+        err_surf = menu_font.render("games.json FEHLT", True, RED)
+        screen.blit(err_surf, err_surf.get_rect(center=(sw//2, sh*0.5)))
     else:
-        for i, g in enumerate(games):
+        for i, game in enumerate(games):
             sel = (i == selected_index)
-            color = NEON_YELLOW if sel else (120, 120, 150)
-            txt = g['display_name']
-            m_rect = menu_font.render(txt, True, color).get_rect(center=(sw//2 + (math.sin(frame_counter*0.1)*8 if sel else 0), sh*0.48 + i*sh*0.12))
-            screen.blit(menu_font.render(txt, True, color), m_rect)
+            txt = game['display_name']
+            
+            wx = math.sin(frame_counter*0.1)*8 if sel else 0
+            wy = math.cos(frame_counter*0.1)*2 if sel else 0
+            m_rect = menu_font.render(txt, True, WHITE).get_rect(center=(sw//2 + wx, sh*0.48 + i*sh*0.12 + wy))
             
             if sel:
-                anim_f = (frame_counter // 15) % 2 == 0
-                anim_s = (frame_counter // 25) % 2 == 0
-                if "SPACE" in txt.upper():
-                    s_l, s_r = (spr_invader1_a if anim_s else spr_invader1_b), (spr_invader2_a if anim_f else spr_invader2_b)
-                elif "ASTEROID" in txt.upper():
-                    s_l, s_r = (spr_ast_ship_thrust if anim_f else spr_ast_ship), (spr_asteroid1 if anim_s else spr_asteroid2)
-                else:
-                    s_l, s_r = (spr_pac_open if anim_f else spr_pac_closed), spr_ghost_red
+                for off in [2, -2]:
+                    screen.blit(menu_font.render(txt, True, (200, 200, 0, 150)), m_rect.move(off, off))
+                screen.blit(menu_font.render(txt, True, NEON_YELLOW), m_rect)
                 
-                screen.blit(s_l, (m_rect.left - s_l.get_width() - 20, m_rect.centery - s_l.get_height()//2))
-                screen.blit(s_r, (m_rect.right + 20, m_rect.centery - s_r.get_height()//2))
+                # Menü-Sprites (Pac-Man, Invader, Asteroids)
+                padding = sw * 0.03
+                drx = math.sin(frame_counter * 0.05) * (sw * 0.015)
+                sl_x = m_rect.left - spr_pac_open.get_width() - padding + drx
+                sr_x = m_rect.right + padding + drx
+                sy = m_rect.centery - (spr_pac_open.get_height() // 2)
+                
+                if "SPACE" in txt.upper():
+                    s_l, s_r = (spr_invader1_a if anim_toggle_slow else spr_invader1_b), (spr_invader2_a if anim_toggle_fast else spr_invader2_b)
+                elif "ASTEROID" in txt.upper():
+                    s_l, s_r = (spr_ast_ship_thrust if anim_toggle_fast else spr_ast_ship), (spr_asteroid1 if anim_toggle_slow else spr_asteroid2)
+                else:
+                    s_l, s_r = (spr_pac_open if anim_toggle_fast else spr_pac_closed), spr_ghost_red
+                    
+                screen.blit(s_l, (sl_x, sy))
+                screen.blit(s_r, (sr_x, sy))
+            else:
+                screen.blit(menu_font.render(txt, True, (120, 120, 150)), m_rect)
 
     # Laufender Pac-Man am Boden
-    running_pac_x = (running_pac_x + 4) if running_pac_x < sw + 500 else -200
-    screen.blit(spr_pac_open if (frame_counter//15)%2==0 else spr_pac_closed, (running_pac_x, sh*0.85))
-    screen.blit(spr_ghost_cyan, (running_pac_x-80, sh*0.85))
-    screen.blit(spr_ghost_red, (running_pac_x-160, sh*0.85))
+    y_btm = sh * 0.85
+    off_btm = int(spr_ghost_red.get_width() * 2.5)
+    screen.blit(spr_pac_open if anim_toggle_fast else spr_pac_closed, (running_pac_x, y_btm))
+    screen.blit(spr_ghost_cyan, (running_pac_x - off_btm, y_btm))
+    screen.blit(spr_ghost_red, (running_pac_x - (off_btm * 2), y_btm))
 
-    # Footer & Error
-    if error_message:
-        e_surf = small_font.render(error_message, True, RED)
-        screen.blit(e_surf, (sw//2 - e_surf.get_width()//2, sh*0.82))
-    
     if (frame_counter // 20) % 2 == 0:
         f_surf = small_font.render("PRESS ENTER TO START", True, NEON_PINK)
         screen.blit(f_surf, (sw//2 - f_surf.get_width()//2, sh*0.96))
+
+    if error_message:
+        e_surf = small_font.render(error_message, True, RED)
+        screen.blit(e_surf, (sw//2 - e_surf.get_width()//2, sh*0.82))
 
     draw_scanlines(frame_counter)
     pygame.display.flip()
