@@ -1,226 +1,69 @@
+"""
+main.py
+
+Der Haupteinstiegspunkt für den Arcade-Launcher.
+Inklusive AFK-Watchdog und Linux-Display-Fix.
+"""
+
 import pygame
 import subprocess
 import sys
 import os
 import platform
 import math
-import json
 import random
+import logging
+import time
+from config import *
+from assets import init_sprites
+from pynput import mouse, keyboard
 
-# --- Pfad-Logik für PyInstaller ---
-if getattr(sys, "frozen", False):
-    RESOURCE_PATH = os.path.dirname(sys.executable)
-else:
-    RESOURCE_PATH = os.path.dirname(os.path.abspath(__file__))
+# --- AFK WATCHDOG SETUP ---
+AFK_TIMEOUT_SECONDS = 180  # 3 Minuten ohne Eingabe = Spiel wird gekillt
+last_input_time = time.time()
 
-GAME_BASE_PATH = RESOURCE_PATH
-os.chdir(RESOURCE_PATH)
+def reset_afk_timer(*args, **kwargs):
+    """Wird bei jedem Maus- oder Tastendruck global aufgerufen."""
+    global last_input_time
+    last_input_time = time.time()
 
-def get_path(rel_path):
-    return os.path.abspath(os.path.join(RESOURCE_PATH, rel_path))
+# Wir starten die globalen Listener in einem Try-Block. 
+# Auf extrem restriktiven Wayland-Systemen (ohne XWayland) könnte das fehlschlagen.
+try:
+    mouse_listener = mouse.Listener(on_move=reset_afk_timer, on_click=reset_afk_timer, on_scroll=reset_afk_timer)
+    keyboard_listener = keyboard.Listener(on_press=reset_afk_timer)
+    mouse_listener.start()
+    keyboard_listener.start()
+    logging.info("AFK-Watchdog erfolgreich gestartet.")
+except Exception as e:
+    logging.warning(f"AFK-Watchdog konnte nicht gestartet werden (Wayland Restriktion?): {e}")
 
-def get_game_path(rel_path):
-    return os.path.abspath(os.path.join(GAME_BASE_PATH, rel_path))
-
-# --- Pygame Setup ---
+# --- Pygame Basis-Setup ---
 pygame.init()
 pygame.mouse.set_visible(False)
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 sw, sh = screen.get_size()
 clock = pygame.time.Clock()
 
-# --- Farben ---
-BG_COLOR = (5, 5, 15)      
-NEON_CYAN = (0, 255, 255)
-NEON_PINK = (255, 20, 147)
-NEON_YELLOW = (255, 255, 0)
-NEON_GREEN = (57, 255, 20)
-NEON_RED = (255, 10, 10) 
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-DARK_RED = (100, 0, 0)
-DARK_CYAN = (0, 100, 100)
-PUNK_COLORS = [NEON_CYAN, NEON_PINK, NEON_YELLOW, NEON_GREEN, NEON_RED]
+logging.info(f"System-Info: {platform.system()} | Auflösung: {sw}x{sh}")
 
-# --- Schriftarten ---
+# --- Ressourcen laden ---
 try:
     font_path = get_path("assets/arcade.ttf")
     title_font = pygame.font.Font(font_path, int(sh * 0.12))
     menu_font = pygame.font.Font(font_path, int(sh * 0.05))
     small_font = pygame.font.Font(font_path, int(sh * 0.02))
 except:
+    logging.warning("Arcade-Font nicht gefunden, nutze System-Fallback.")
     title_font = pygame.font.Font(None, int(sh * 0.12))
     menu_font = pygame.font.Font(None, int(sh * 0.06))
     small_font = pygame.font.Font(None, int(sh * 0.03))
 
-CONFIG_FILE = os.path.join(RESOURCE_PATH, "games.json")
+sprites = init_sprites(sh)
 
-def load_games_config():
-    if not os.path.exists(CONFIG_FILE):
-        return []
-    try:
-        with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            loaded_games = data.get("games", [])
-            for game in loaded_games:
-                for os_name, rel_path in game["paths"].items():
-                    game["paths"][os_name] = get_game_path(rel_path)
-            return loaded_games
-    except Exception:
-        return []
-
-games = load_games_config()
-
-# --- PIXEL ART MATRIZEN ---
-
-INVADER_1 = [
-    "  #     #  ",
-    "   #   #   ",
-    "  #######  ",
-    " ## ### ## ",
-    "###########",
-    "# ####### #",
-    "# #     # #",
-    "   ## ##   "
-]
-
-INVADER_2 = [
-    "  #     #  ",
-    "#  #   #  #",
-    "# ####### #",
-    "### ### ###",
-    "###########",
-    "  #######  ",
-    " # #   # # ",
-    "#         #"
-]
-
-PACMAN_OPEN = [
-    "    #####    ",
-    "  #########  ",
-    " ########### ",
-    "#############",
-    "############ ",
-    "##########   ",
-    "########     ",
-    "######       ",
-    "########     ",
-    "##########   ",
-    " ########### ",
-    "  #########  ",
-    "    #####    "
-]
-
-PACMAN_CLOSED = [
-    "    #####    ",
-    "  #########  ",
-    " ########### ",
-    "#############",
-    "#############",
-    "#############",
-    "#############",
-    "#############",
-    "#############",
-    "#############",
-    " ########### ",
-    "  #########  ",
-    "    #####    "
-]
-
-GHOST = [
-    "    ######    ",
-    "  ##########  ",
-    " ############ ",
-    " ###WW###WW## ",
-    " ##WWBB#WWBB# ",
-    " ##WWBB#WWBB# ",
-    " ###WW###WW## ",
-    " ############ ",
-    " ############ ",
-    " ############ ",
-    " ############ ",
-    " ############ ",
-    " ##  ####  ## ",
-    " #    ##    # "
-]
-
-ASTEROIDS_SHIP = [
-    "     #     ",
-    "    ###    ",
-    "   ##W##   ",
-    "  #######  ",
-    " ######### ",
-    "###########",
-    "###     ###",
-    "##       ##"
-]
-
-ASTEROIDS_SHIP_THRUST = [
-    "     #     ",
-    "    ###    ",
-    "   ##W##   ",
-    "  #######  ",
-    " ######### ",
-    "###########",
-    "### ### ###",
-    "##  ###  ##",
-    "     #     "
-]
-
-ASTEROID_1 = [
-    "   ######  ",
-    " ######### ",
-    "###########",
-    "####   ####",
-    "###     ###",
-    "#####   ###",
-    "###########",
-    " ######### ",
-    "  #######  "
-]
-
-ASTEROID_2 = [
-    "  ######   ",
-    " ########  ",
-    "########## ",
-    "###    ####",
-    "##      ###",
-    "####   ####",
-    " ##########",
-    "  ######## ",
-    "   ######  "
-]
-
-def create_sprite(matrix, main_color, scale):
-    w, h = len(matrix[0]), len(matrix)
-    surf = pygame.Surface((w * scale, h * scale), pygame.SRCALPHA)
-    for y, row in enumerate(matrix):
-        for x, char in enumerate(row):
-            color = None
-            if char == '#': color = main_color
-            elif char == 'W': color = WHITE
-            elif char == 'B': color = (30, 30, 255)
-            if color:
-                pygame.draw.rect(surf, color, (x * scale, y * scale, scale, scale))
-    return surf
-
-scale_size = max(4, int(sh * 0.008))
-
-spr_invader1_a = create_sprite(INVADER_1, NEON_GREEN, scale_size)
-spr_invader1_b = create_sprite(INVADER_2, NEON_GREEN, scale_size)
-spr_invader2_a = create_sprite(INVADER_2, NEON_CYAN, scale_size)
-spr_invader2_b = create_sprite(INVADER_1, NEON_CYAN, scale_size)
-spr_pac_open = create_sprite(PACMAN_OPEN, NEON_YELLOW, scale_size)
-spr_pac_closed = create_sprite(PACMAN_CLOSED, NEON_YELLOW, scale_size)
-spr_ghost_red = create_sprite(GHOST, RED, scale_size)
-spr_ghost_cyan = create_sprite(GHOST, NEON_CYAN, scale_size)
-spr_ast_ship = create_sprite(ASTEROIDS_SHIP, NEON_PINK, scale_size)
-spr_ast_ship_thrust = create_sprite(ASTEROIDS_SHIP_THRUST, NEON_PINK, scale_size)
-spr_asteroid1 = create_sprite(ASTEROID_1, NEON_CYAN, scale_size)
-spr_asteroid2 = create_sprite(ASTEROID_2, NEON_CYAN, scale_size)
-
-# --- Effekte ---
+# --- Visuelle Effekte vorbereiten ---
 stars = [[random.randint(0, sw), random.randint(0, sh), random.randint(1, 3)] for _ in range(100)]
+
 bloom_grid_surf = pygame.Surface((sw, sh), pygame.SRCALPHA)
 for x in range(0, sw, int(sw*0.05)): 
     pygame.draw.line(bloom_grid_surf, (0, 20, 50, 50), (x, 0), (x, sh), 2)
@@ -245,7 +88,7 @@ def draw_punk_underline(rect, frame):
         block_rect = pygame.Rect(rect.left + i * block_width, underline_y + offset_y, block_width - 2, sh * 0.005)
         pygame.draw.rect(screen, color, block_rect)
 
-# --- Schiff Background Logik ---
+# --- Asteroids-Schiff Hintergrund-Animation ---
 base_ship_images = []
 ship_loaded = False
 ship_active = False
@@ -262,60 +105,75 @@ try:
         b_img = pygame.image.load(p).convert_alpha()
         
         combined = pygame.Surface((max(idle_img.get_width(), b_img.get_width()), idle_img.get_height() + b_img.get_height()), pygame.SRCALPHA)
-        
         flame_y = idle_img.get_height() - 2
-        
-        # 1. Flamme im Hintergrund malen
         combined.blit(b_img, ((combined.get_width() - b_img.get_width()) // 2, flame_y))
-        
-        # 2. Schiff drüberlegen
         combined.blit(idle_img, ((combined.get_width() - idle_img.get_width()) // 2, 0))
         
         new_h = int(sh * 0.12)
         new_w = int(combined.get_width() * (new_h / combined.get_height()))
         base_ship_images.append(pygame.transform.scale(combined, (new_w, new_h)))
         
-    if len(base_ship_images) == 3: ship_loaded = True
+    if len(base_ship_images) == 3: 
+        ship_loaded = True
 except: pass
 
-# --- MAIN LOOP ---
+# --- MAIN LOOP SETUP ---
 selected_index = 0
 error_message = ""
 frame_counter = 0
-running_pac_x = -100
+running_pac_x = -200
 running = True
 
 while running:
     frame_counter += 1
     aktuelles_os = platform.system()
     
+    # Setzt den Launcher-AFK-Timer zurück, wenn wir im Menü navigieren
+    if time.time() - last_input_time > AFK_TIMEOUT_SECONDS:
+        last_input_time = time.time() 
+
+    # --- Event Handling ---
     for event in pygame.event.get():
-        if event.type == pygame.QUIT: running = False
+        if event.type == pygame.QUIT: 
+            logging.info("Beenden durch User (QUIT Event).")
+            running = False
+        
         if event.type == pygame.KEYDOWN:
             error_message = ""
             if not games:
-                if event.key == pygame.K_ESCAPE: running = False
+                if event.key == pygame.K_ESCAPE: 
+                    running = False
                 continue
             
-            if event.key == pygame.K_UP: selected_index = (selected_index - 1) % len(games)
-            elif event.key == pygame.K_DOWN: selected_index = (selected_index + 1) % len(games)
+            if event.key == pygame.K_UP: 
+                selected_index = (selected_index - 1) % len(games)
+            elif event.key == pygame.K_DOWN: 
+                selected_index = (selected_index + 1) % len(games)
+            
+            # --- SPIEL STARTEN ---
             elif event.key == pygame.K_RETURN:
-                p_dict = games[selected_index]["paths"]
+                game = games[selected_index]
+                game_name = game.get("display_name", "Unbekanntes Spiel")
+                p_dict = game.get("paths", {})
+                
+                logging.info(f"Start-Versuch: {game_name} auf OS: {aktuelles_os}")
+                
                 if aktuelles_os in p_dict:
                     exe_p = p_dict[aktuelles_os]
+                    
                     if os.path.exists(exe_p):
                         try:
                             game_dir = os.path.dirname(exe_p)
                             
-                            # --- FIX FÜR LINUX KONFLIKTE ---
                             clean_env = os.environ.copy()
                             for var in ['LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONHOME', 'PYTHONPATH']:
                                 clean_env.pop(var, None)
 
                             if aktuelles_os in ["Linux", "Darwin"]:
                                 try: os.chmod(exe_p, os.stat(exe_p).st_mode | 0o111)
-                                except: pass
+                                except Exception as e: logging.warning(f"Konnte chmod nicht setzen: {e}")
 
+                            # Ladebildschirm
                             screen.fill(BG_COLOR)
                             l_txt = title_font.render("LOADING...", True, NEON_CYAN)
                             screen.blit(l_txt, l_txt.get_rect(center=(sw//2, sh//2)))
@@ -323,32 +181,68 @@ while running:
                             
                             if aktuelles_os == "Darwin": pygame.display.iconify()
                             
-                            if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
-                                subprocess.run(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
-                            else:
-                                subprocess.run([exe_p], cwd=game_dir, check=True, env=clean_env)
+                            # --- WATCHDOG LOGIK (Der AFK-Timer) ---
+                            reset_afk_timer() # Timer resetten, bevor das Spiel startet
                             
-                            if aktuelles_os in ["Darwin", "Linux"]: 
+                            if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
+                                process = subprocess.Popen(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
+                            else:
+                                process = subprocess.Popen([exe_p], cwd=game_dir, env=clean_env)
+                            
+                            logging.info(f"Spiel läuft im Hintergrund. AFK-Timer gestartet ({AFK_TIMEOUT_SECONDS}s).")
+                            
+                            # Der Launcher schläft jetzt, prüft aber jede Sekunde, ob das Spiel noch an ist oder der Timer abgelaufen ist
+                            while True:
+                                if process.poll() is not None:
+                                    # Spiel wurde normal beendet
+                                    logging.info(f"Erfolgreich beendet: {game_name}")
+                                    break
+                                
+                                if time.time() - last_input_time > AFK_TIMEOUT_SECONDS:
+                                    # AFK LIMIT ERREICHT!
+                                    logging.warning(f"AFK-Timer abgelaufen! Schieße {game_name} ab.")
+                                    process.terminate() # Sanftes Kill-Signal senden
+                                    try:
+                                        process.wait(timeout=3)
+                                    except subprocess.TimeoutExpired:
+                                        process.kill() # Hartes Kill-Signal, falls es hängt
+                                    error_message = "AFK: ZURÜCKGESETZT"
+                                    break
+                                
+                                pygame.time.wait(1000) # 1 Sekunde warten, um CPU zu schonen
+
+                            # --- UBUNTU FENSTER-FIX ---
+                            # Wenn das Spiel zugeht, verliert der Linux-Fenstermanager oft den Fokus und
+                            # der Launcher bleibt im Hintergrund. Wir starten das Display hart neu.
+                            if aktuelles_os == "Linux":
+                                logging.info("Linux: Führe Display-Reset durch, um Fokus zurückzuholen.")
+                                pygame.time.wait(200) # Dem OS kurz Zeit geben, das alte Fenster abzuräumen
+                                pygame.display.quit()
+                                pygame.display.init()
+                                pygame.mouse.set_visible(False)
                                 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                            elif aktuelles_os == "Darwin":
+                                screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                                
                             pygame.event.clear()
 
-                        except subprocess.CalledProcessError as e:
-                            error_message = f"GAME CRASHED (CODE {e.returncode})"
                         except Exception as e:
+                            logging.error(f"UNERWARTETER FEHLER beim Start von {game_name}: {e}")
                             error_message = f"ERROR: {str(e)[:25]}"
                     else:
                         error_message = "EXECUTABLE NOT FOUND"
                 else:
                     error_message = "OS NOT SUPPORTED"
-            elif event.key == pygame.K_ESCAPE: running = False
+            
+            elif event.key == pygame.K_ESCAPE: 
+                running = False
 
-    # Stern-Animation
+    # --- Logik Updates ---
     for star in stars:
         star[1] += star[2]
         if star[1] > sh:
             star[1], star[0] = 0, random.randint(0, sw)
 
-    # Pac-Man Lauf-Animation
     running_pac_x += 4
     if running_pac_x > sw + 500:
         running_pac_x = -200
@@ -356,15 +250,14 @@ while running:
     anim_toggle_fast = (frame_counter // 15) % 2 == 0
     anim_toggle_slow = (frame_counter // 25) % 2 == 0
 
-    # Rendering
+    # --- Renderschleife ---
     screen.fill(BG_COLOR)
     screen.blit(bloom_grid_surf, (0, 0))
 
     for star in stars:
-        color = (150,150,150) if star[2]==1 else WHITE
+        color = (150,150,150) if star[2] == 1 else WHITE
         pygame.draw.rect(screen, color, (star[0], star[1], star[2], star[2]))
 
-    # --- Fliegendes Schiff im Hintergrund ---
     if ship_loaded:
         if not ship_active:
             side = random.choice(['top', 'right', 'bottom', 'left'])
@@ -406,7 +299,6 @@ while running:
             ship_rect = current_ship.get_rect(center=(int(ship_x), int(ship_y)))
             screen.blit(current_ship, ship_rect)
 
-    # Titel Rendering
     glow_y = math.sin(frame_counter * 0.05) * (sh * 0.01)
     shift_x = math.sin(frame_counter * 0.1) * (sw * 0.005)
     t_rect = title_font.render("DIGITS ARCADE", True, WHITE).get_rect(center=(sw//2, int(sh*0.15)))
@@ -416,14 +308,13 @@ while running:
     screen.blit(title_font.render("DIGITS ARCADE", True, WHITE), t_rect.move(0, int(glow_y)))
     draw_punk_underline(t_rect, frame_counter)
 
-    # Menü-Einträge
     if not games:
         err_surf = menu_font.render("games.json FEHLT", True, RED)
         screen.blit(err_surf, err_surf.get_rect(center=(sw//2, int(sh*0.5))))
     else:
         for i, game in enumerate(games):
             sel = (i == selected_index)
-            txt = game['display_name']
+            txt = game.get('display_name', 'Unbekannt')
             
             wx = math.sin(frame_counter*0.1)*8 if sel else 0
             wy = math.cos(frame_counter*0.1)*2 if sel else 0
@@ -437,34 +328,32 @@ while running:
                     
                 screen.blit(menu_font.render(txt, True, NEON_YELLOW), m_rect)
                 
-                # Menü-Sprites (Pac-Man, Invader, Asteroids)
                 padding = sw * 0.03
                 drx = math.sin(frame_counter * 0.05) * (sw * 0.015)
-                sl_x = m_rect.left - spr_pac_open.get_width() - padding + drx
+                sl_x = m_rect.left - sprites['pac_open'].get_width() - padding + drx
                 sr_x = m_rect.right + padding + drx
-                sy = m_rect.centery - (spr_pac_open.get_height() // 2)
+                sy = m_rect.centery - (sprites['pac_open'].get_height() // 2)
                 
                 if "SPACE" in txt.upper():
-                    s_l, s_r = (spr_invader1_a if anim_toggle_slow else spr_invader1_b), (spr_invader2_a if anim_toggle_fast else spr_invader2_b)
+                    s_l, s_r = (sprites['invader1_a'] if anim_toggle_slow else sprites['invader1_b']), (sprites['invader2_a'] if anim_toggle_fast else sprites['invader2_b'])
                 elif "ASTEROID" in txt.upper():
-                    s_l, s_r = (spr_ast_ship_thrust if anim_toggle_fast else spr_ast_ship), (spr_asteroid1 if anim_toggle_slow else spr_asteroid2)
+                    s_l, s_r = (sprites['ast_ship_thrust'] if anim_toggle_fast else sprites['ast_ship']), (sprites['asteroid1'] if anim_toggle_slow else sprites['asteroid2'])
                 else:
-                    s_l, s_r = (spr_pac_open if anim_toggle_fast else spr_pac_closed), spr_ghost_red
+                    s_l, s_r = (sprites['pac_open'] if anim_toggle_fast else sprites['pac_closed']), sprites['ghost_red']
                     
                 screen.blit(s_l, (int(sl_x), int(sy)))
                 screen.blit(s_r, (int(sr_x), int(sy)))
             else:
                 screen.blit(menu_font.render(txt, True, (120, 120, 150)), m_rect)
 
-    # Laufender Pac-Man am Boden
     y_btm = sh * 0.85
-    off_btm = int(spr_ghost_red.get_width() * 2.5)
-    screen.blit(spr_pac_open if anim_toggle_fast else spr_pac_closed, (int(running_pac_x), int(y_btm)))
-    screen.blit(spr_ghost_cyan, (int(running_pac_x - off_btm), int(y_btm)))
-    screen.blit(spr_ghost_red, (int(running_pac_x - (off_btm * 2)), int(y_btm)))
+    off_btm = int(sprites['ghost_red'].get_width() * 2.5)
+    screen.blit(sprites['pac_open'] if anim_toggle_fast else sprites['pac_closed'], (int(running_pac_x), int(y_btm)))
+    screen.blit(sprites['ghost_cyan'], (int(running_pac_x - off_btm), int(y_btm)))
+    screen.blit(sprites['ghost_red'], (int(running_pac_x - (off_btm * 2)), int(y_btm)))
 
     if (frame_counter // 20) % 2 == 0:
-        f_surf = small_font.render("PRESS ENTER TO START", True, NEON_PINK)
+        f_surf = small_font.render("PRESS BUTTON TO START", True, NEON_PINK)
         screen.blit(f_surf, (int(sw//2 - f_surf.get_width()//2), int(sh*0.96)))
 
     if error_message:
@@ -475,5 +364,6 @@ while running:
     pygame.display.flip()
     clock.tick(60)
 
+logging.info("=== LAUNCHER WIRD BEENDET ===")
 pygame.quit()
 sys.exit()
