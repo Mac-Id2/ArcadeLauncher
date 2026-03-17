@@ -1,7 +1,8 @@
 """
 main.py
 
-Der Haupteinstiegspunkt für den Launcher.
+Der Haupteinstiegspunkt für den Arcade-Launcher.
+Inklusive AFK-Watchdog und Linux-Display-Fix.
 """
 
 import pygame
@@ -12,8 +13,30 @@ import platform
 import math
 import random
 import logging
+import time
 from config import *
 from assets import init_sprites
+from pynput import mouse, keyboard
+
+# --- AFK WATCHDOG SETUP ---
+AFK_TIMEOUT_SECONDS = 180  # 3 Minuten ohne Eingabe = Spiel wird gekillt
+last_input_time = time.time()
+
+def reset_afk_timer(*args, **kwargs):
+    """Wird bei jedem Maus- oder Tastendruck global aufgerufen."""
+    global last_input_time
+    last_input_time = time.time()
+
+# Wir starten die globalen Listener in einem Try-Block. 
+# Auf extrem restriktiven Wayland-Systemen (ohne XWayland) könnte das fehlschlagen.
+try:
+    mouse_listener = mouse.Listener(on_move=reset_afk_timer, on_click=reset_afk_timer, on_scroll=reset_afk_timer)
+    keyboard_listener = keyboard.Listener(on_press=reset_afk_timer)
+    mouse_listener.start()
+    keyboard_listener.start()
+    logging.info("AFK-Watchdog erfolgreich gestartet.")
+except Exception as e:
+    logging.warning(f"AFK-Watchdog konnte nicht gestartet werden (Wayland Restriktion?): {e}")
 
 # --- Pygame Basis-Setup ---
 pygame.init()
@@ -105,6 +128,10 @@ while running:
     frame_counter += 1
     aktuelles_os = platform.system()
     
+    # Setzt den Launcher-AFK-Timer zurück, wenn wir im Menü navigieren
+    if time.time() - last_input_time > AFK_TIMEOUT_SECONDS:
+        last_input_time = time.time() 
+
     # --- Event Handling ---
     for event in pygame.event.get():
         if event.type == pygame.QUIT: 
@@ -115,7 +142,6 @@ while running:
             error_message = ""
             if not games:
                 if event.key == pygame.K_ESCAPE: 
-                    logging.info("Beenden durch User (ESCAPE).")
                     running = False
                 continue
             
@@ -126,7 +152,6 @@ while running:
             
             # --- SPIEL STARTEN ---
             elif event.key == pygame.K_RETURN:
-                # Defensiver Zugriff für Produktionsumgebung
                 game = games[selected_index]
                 game_name = game.get("display_name", "Unbekanntes Spiel")
                 p_dict = game.get("paths", {})
@@ -139,7 +164,6 @@ while running:
                     if os.path.exists(exe_p):
                         try:
                             game_dir = os.path.dirname(exe_p)
-                            logging.info(f"Führe aus: {exe_p} in {game_dir}")
                             
                             clean_env = os.environ.copy()
                             for var in ['LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONHOME', 'PYTHONPATH']:
@@ -157,33 +181,60 @@ while running:
                             
                             if aktuelles_os == "Darwin": pygame.display.iconify()
                             
-                            # Subprozess starten
+                            # --- WATCHDOG LOGIK (Der AFK-Timer) ---
+                            reset_afk_timer() # Timer resetten, bevor das Spiel startet
+                            
                             if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
-                                subprocess.run(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
+                                process = subprocess.Popen(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
                             else:
-                                subprocess.run([exe_p], cwd=game_dir, check=True, env=clean_env)
+                                process = subprocess.Popen([exe_p], cwd=game_dir, env=clean_env)
                             
-                            logging.info(f"Erfolgreich beendet: {game_name}")
+                            logging.info(f"Spiel läuft im Hintergrund. AFK-Timer gestartet ({AFK_TIMEOUT_SECONDS}s).")
                             
-                            if aktuelles_os in ["Darwin", "Linux"]: 
+                            # Der Launcher schläft jetzt, prüft aber jede Sekunde, ob das Spiel noch an ist oder der Timer abgelaufen ist
+                            while True:
+                                if process.poll() is not None:
+                                    # Spiel wurde normal beendet
+                                    logging.info(f"Erfolgreich beendet: {game_name}")
+                                    break
+                                
+                                if time.time() - last_input_time > AFK_TIMEOUT_SECONDS:
+                                    # AFK LIMIT ERREICHT!
+                                    logging.warning(f"AFK-Timer abgelaufen! Schieße {game_name} ab.")
+                                    process.terminate() # Sanftes Kill-Signal senden
+                                    try:
+                                        process.wait(timeout=3)
+                                    except subprocess.TimeoutExpired:
+                                        process.kill() # Hartes Kill-Signal, falls es hängt
+                                    error_message = "AFK: ZURÜCKGESETZT"
+                                    break
+                                
+                                pygame.time.wait(1000) # 1 Sekunde warten, um CPU zu schonen
+
+                            # --- UBUNTU FENSTER-FIX ---
+                            # Wenn das Spiel zugeht, verliert der Linux-Fenstermanager oft den Fokus und
+                            # der Launcher bleibt im Hintergrund. Wir starten das Display hart neu.
+                            if aktuelles_os == "Linux":
+                                logging.info("Linux: Führe Display-Reset durch, um Fokus zurückzuholen.")
+                                pygame.time.wait(200) # Dem OS kurz Zeit geben, das alte Fenster abzuräumen
+                                pygame.display.quit()
+                                pygame.display.init()
+                                pygame.mouse.set_visible(False)
                                 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                            elif aktuelles_os == "Darwin":
+                                screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                                
                             pygame.event.clear()
 
-                        except subprocess.CalledProcessError as e:
-                            logging.error(f"GAME CRASH: {game_name} beendet mit Code {e.returncode}")
-                            error_message = f"GAME CRASHED (CODE {e.returncode})"
                         except Exception as e:
                             logging.error(f"UNERWARTETER FEHLER beim Start von {game_name}: {e}")
                             error_message = f"ERROR: {str(e)[:25]}"
                     else:
-                        logging.warning(f"Datei nicht gefunden: {exe_p}")
                         error_message = "EXECUTABLE NOT FOUND"
                 else:
-                    logging.warning(f"Kein Pfad für {aktuelles_os} in games.json hinterlegt.")
                     error_message = "OS NOT SUPPORTED"
             
             elif event.key == pygame.K_ESCAPE: 
-                logging.info("Beenden durch User (ESCAPE).")
                 running = False
 
     # --- Logik Updates ---
@@ -207,7 +258,6 @@ while running:
         color = (150,150,150) if star[2] == 1 else WHITE
         pygame.draw.rect(screen, color, (star[0], star[1], star[2], star[2]))
 
-    # Schiff Hintergrundanimation
     if ship_loaded:
         if not ship_active:
             side = random.choice(['top', 'right', 'bottom', 'left'])
@@ -249,7 +299,6 @@ while running:
             ship_rect = current_ship.get_rect(center=(int(ship_x), int(ship_y)))
             screen.blit(current_ship, ship_rect)
 
-    # Menü Titel
     glow_y = math.sin(frame_counter * 0.05) * (sh * 0.01)
     shift_x = math.sin(frame_counter * 0.1) * (sw * 0.005)
     t_rect = title_font.render("DIGITS ARCADE", True, WHITE).get_rect(center=(sw//2, int(sh*0.15)))
@@ -259,7 +308,6 @@ while running:
     screen.blit(title_font.render("DIGITS ARCADE", True, WHITE), t_rect.move(0, int(glow_y)))
     draw_punk_underline(t_rect, frame_counter)
 
-    # Listen-Rendering der Spiele
     if not games:
         err_surf = menu_font.render("games.json FEHLT", True, RED)
         screen.blit(err_surf, err_surf.get_rect(center=(sw//2, int(sh*0.5))))
@@ -298,7 +346,6 @@ while running:
             else:
                 screen.blit(menu_font.render(txt, True, (120, 120, 150)), m_rect)
 
-    # Footer-Animation
     y_btm = sh * 0.85
     off_btm = int(sprites['ghost_red'].get_width() * 2.5)
     screen.blit(sprites['pac_open'] if anim_toggle_fast else sprites['pac_closed'], (int(running_pac_x), int(y_btm)))
@@ -306,7 +353,7 @@ while running:
     screen.blit(sprites['ghost_red'], (int(running_pac_x - (off_btm * 2)), int(y_btm)))
 
     if (frame_counter // 20) % 2 == 0:
-        f_surf = small_font.render("PRESS ENTER TO START", True, NEON_PINK)
+        f_surf = small_font.render("PRESS BUTTON TO START", True, NEON_PINK)
         screen.blit(f_surf, (int(sw//2 - f_surf.get_width()//2), int(sh*0.96)))
 
     if error_message:
