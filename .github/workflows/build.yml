@@ -41,7 +41,7 @@ jobs:
           if [ "${{ matrix.artifact_name }}" = "macos-x64" ]; then
             # Zwingt den Server, Pakete für Intel-Prozessoren zu laden
             arch -x86_64 python -m pip install --upgrade pip
-            arch -x86_64 pip install "setuptools==68.2.2" pygame pyinstaller
+            arch -x86_64 pip install "setuptools==68.2.2" pygame pyinstaller pynput
           else
             python -m pip install --upgrade pip
             pip install "setuptools==68.2.2" pygame pyinstaller pynput
@@ -53,11 +53,11 @@ jobs:
           # Ordnerstruktur für Artifact vorbereiten
           mkdir -p dist/final_delivery
           
-          # Der Rosetta-Trick für den eigentlichen Build
+          # Der Rosetta-Trick für den eigentlichen Build inkl. --collect-all pynput
           if [ "${{ matrix.artifact_name }}" = "macos-x64" ]; then
-            arch -x86_64 pyinstaller --noconsole --onefile launcher.py
+            arch -x86_64 pyinstaller --noconsole --onefile --collect-all pynput launcher.py
           else
-            pyinstaller --noconsole --onefile launcher.py
+            pyinstaller --noconsole --onefile --collect-all pynput launcher.py
           fi
           
           # Binärdatei verschieben (Name unterscheidet sich je nach OS)
