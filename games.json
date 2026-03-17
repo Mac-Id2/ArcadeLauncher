@@ -3,7 +3,7 @@
         {
             "display_name": "SPACE INVADERS",
             "paths": {
-                "Windows": "../spiele/Space-Invaders/game",
+                "Windows": "../spiele/Space-Invaders/game.exe",
                 "Darwin": "../spiele/Space-Invaders/game",
                 "Linux": "../spiele/Space-Invaders/game"
             }
@@ -11,19 +11,17 @@
         {
             "display_name": "PAC-MAN",
             "paths": {
-                "Windows": "../spiele/Pac-Man/game",
-                "Darwin": "../spiele/Pac-Man/game", 
+                "Windows": "../spiele/Pac-Man/game.exe",
+                "Darwin": "../spiele/Pac-Man/game",
                 "Linux": "../spiele/Pac-Man/game"
-
             }
         },
         {
             "display_name": "ASTEROIDS",
             "paths": {
-                "Windows": "../spiele/Asteroids/game",
+                "Windows": "../spiele/Asteroids/game.exe",
                 "Darwin": "../spiele/Asteroids/game",
                 "Linux": "../spiele/Asteroids/game"
-
             }
         }
     ]
