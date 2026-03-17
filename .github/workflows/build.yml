@@ -22,7 +22,6 @@ jobs:
             artifact_name: linux-x64
           - os: macos-latest
             artifact_name: macos-arm64
-          # --- NEU: Intel Mac läuft jetzt über den Rosetta-Trick auf dem neuesten Server! ---
           - os: macos-latest
             artifact_name: macos-x64
 
@@ -39,7 +38,6 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.artifact_name }}" = "macos-x64" ]; then
-            # Zwingt den Server, Pakete für Intel-Prozessoren zu laden
             arch -x86_64 python -m pip install --upgrade pip
             arch -x86_64 pip install "setuptools==68.2.2" pygame pyinstaller pynput
           else
@@ -50,26 +48,26 @@ jobs:
       - name: PyInstaller Build
         shell: bash
         run: |
-          # Ordnerstruktur für Artifact vorbereiten
           mkdir -p dist/final_delivery
           
-          # Der Rosetta-Trick für den eigentlichen Build inkl. --collect-all pynput
+          # Build-Befehl (Name wird hier groß geschrieben: Launcher)
           if [ "${{ matrix.artifact_name }}" = "macos-x64" ]; then
-            arch -x86_64 pyinstaller --noconsole --onefile --collect-all pynput launcher.py
+            arch -x86_64 pyinstaller --noconsole --onefile --collect-all pynput --name Launcher launcher.py
           else
-            pyinstaller --noconsole --onefile --collect-all pynput launcher.py
+            pyinstaller --noconsole --onefile --collect-all pynput --name Launcher launcher.py
           fi
           
-          # Binärdatei verschieben (Name unterscheidet sich je nach OS)
+          # --- KORREKTUR: Pfade und Endungen ---
           if [ "${{ runner.os }}" = "Windows" ]; then
-            mv dist/launcher.exe dist/final_delivery/
+            # Windows behält Launcher.exe
+            mv dist/Launcher.exe dist/final_delivery/
           else
-            mv dist/launcher dist/final_delivery/
-            # WICHTIG: Ausführungsrechte explizit setzen
-            chmod +x dist/final_delivery/launcher
+            # Linux und Mac behalten Launcher (ohne Endung)
+            mv dist/Launcher dist/final_delivery/
+            chmod +x dist/final_delivery/Launcher
           fi
           
-          # Assets kopieren
+          # Assets und JSON kopieren
           [ -d assets ] && cp -r assets dist/final_delivery/
           [ -f games.json ] && cp games.json dist/final_delivery/
 
@@ -78,8 +76,10 @@ jobs:
         run: |
           cd dist/final_delivery
           if [ "${{ runner.os }}" = "Linux" ]; then
+            # Speziell für Linux nutzen wir den nativen Zip-Befehl um Rechte zu wahren
             zip -r "../../Launcher-${{ matrix.artifact_name }}.zip" .
           else
+            # Windows/Mac nutzen das Python-Script zum Archivieren
             python -c "import shutil; shutil.make_archive('../../Launcher-${{ matrix.artifact_name }}', 'zip', '.')"
           fi
 
