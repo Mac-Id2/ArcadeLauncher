@@ -44,7 +44,7 @@ jobs:
             arch -x86_64 pip install "setuptools==68.2.2" pygame pyinstaller
           else
             python -m pip install --upgrade pip
-            pip install "setuptools==68.2.2" pygame pyinstaller
+            pip install "setuptools==68.2.2" pygame pyinstaller pynput
           fi
 
       - name: PyInstaller Build
