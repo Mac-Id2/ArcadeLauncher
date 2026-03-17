@@ -16,7 +16,14 @@ import logging
 import time
 from config import *
 from assets import init_sprites
-from pynput import mouse, keyboard
+
+# --- SICHERER PYNPUT IMPORT ---
+try:
+    from pynput import mouse, keyboard
+    PYNPUT_AVAILABLE = True
+except Exception as e:
+    logging.error(f"pynput Import blockiert (Wayland oder fehlende Libs): {e}")
+    PYNPUT_AVAILABLE = False
 
 # --- AFK WATCHDOG SETUP ---
 AFK_TIMEOUT_SECONDS = 180  # 3 Minuten ohne Eingabe = Spiel wird gekillt
@@ -27,16 +34,18 @@ def reset_afk_timer(*args, **kwargs):
     global last_input_time
     last_input_time = time.time()
 
-# Wir starten die globalen Listener in einem Try-Block. 
-# Auf extrem restriktiven Wayland-Systemen (ohne XWayland) könnte das fehlschlagen.
-try:
-    mouse_listener = mouse.Listener(on_move=reset_afk_timer, on_click=reset_afk_timer, on_scroll=reset_afk_timer)
-    keyboard_listener = keyboard.Listener(on_press=reset_afk_timer)
-    mouse_listener.start()
-    keyboard_listener.start()
-    logging.info("AFK-Watchdog erfolgreich gestartet.")
-except Exception as e:
-    logging.warning(f"AFK-Watchdog konnte nicht gestartet werden (Wayland Restriktion?): {e}")
+if PYNPUT_AVAILABLE:
+    try:
+        mouse_listener = mouse.Listener(on_move=reset_afk_timer, on_click=reset_afk_timer, on_scroll=reset_afk_timer)
+        keyboard_listener = keyboard.Listener(on_press=reset_afk_timer)
+        mouse_listener.start()
+        keyboard_listener.start()
+        logging.info("AFK-Watchdog erfolgreich gestartet.")
+    except Exception as e:
+        logging.warning(f"AFK-Watchdog konnte nicht gestartet werden: {e}")
+        PYNPUT_AVAILABLE = False
+else:
+    logging.warning("AFK-Timer ist deaktiviert. Launcher läuft ohne Watchdog weiter.")
 
 # --- Pygame Basis-Setup ---
 pygame.init()
