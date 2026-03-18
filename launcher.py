@@ -202,37 +202,38 @@ while running:
                             screen.blit(l_txt, l_txt.get_rect(center=(sw//2, sh//2)))
                             pygame.display.flip()
                             
-                            if aktuelles_os == "Darwin": pygame.display.iconify()
-                            
                             if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
                                 process = subprocess.Popen(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
                             else:
                                 process = subprocess.Popen([exe_p], cwd=game_dir, env=clean_env)
                             
-                            logging.info(f"Spiel läuft im Hintergrund. OS-AFK-Timer aktiv ({AFK_TIMEOUT_SECONDS}s).")
+                            idle_at_start = get_system_idle_time()
+                            afk_api_works = idle_at_start < 10.0
                             
-                            # Der Launcher schläft jetzt, prüft aber jede Sekunde, ob das Spiel noch an ist oder der Timer abgelaufen ist
+                            if afk_api_works:
+                                logging.info(f"Spiel läuft. OS-AFK-Timer aktiv ({AFK_TIMEOUT_SECONDS}s).")
+                            else:
+                                logging.warning(f"OS blockiert Timer (Start-Wert: {idle_at_start}s). AFK-Schutz wird deaktiviert!")
+                            
                             while True:
                                 if process.poll() is not None:
-                                    # Spiel wurde normal beendet
                                     logging.info(f"Erfolgreich beendet: {game_name}")
                                     break
                                 
-                                # --- NEUE AFK ABFRAGE ---
-                                current_idle_time = get_system_idle_time()
+                                if afk_api_works:
+                                    current_idle_time = get_system_idle_time()
+                                    
+                                    if current_idle_time > AFK_TIMEOUT_SECONDS:
+                                        logging.warning(f"AFK-Timer abgelaufen ({current_idle_time}s)! Schieße {game_name} ab.")
+                                        process.terminate()
+                                        try:
+                                            process.wait(timeout=3)
+                                        except subprocess.TimeoutExpired:
+                                            process.kill() 
+                                        error_message = "AFK: ZURÜCKGESETZT"
+                                        break
                                 
-                                if current_idle_time > AFK_TIMEOUT_SECONDS:
-                                    # AFK LIMIT ERREICHT!
-                                    logging.warning(f"AFK-Timer abgelaufen ({current_idle_time}s)! Schieße {game_name} ab.")
-                                    process.terminate() # Sanftes Kill-Signal senden
-                                    try:
-                                        process.wait(timeout=3)
-                                    except subprocess.TimeoutExpired:
-                                        process.kill() # Hartes Kill-Signal, falls es hängt
-                                    error_message = "AFK: ZURÜCKGESETZT"
-                                    break
-                                
-                                pygame.time.wait(1000) # 1 Sekunde warten, um CPU zu schonen
+                                pygame.time.wait(1000) 
 
                             # --- FENSTER-FIX FÜR MAC & LINUX ---
                             if aktuelles_os in ["Linux", "Darwin"]:
