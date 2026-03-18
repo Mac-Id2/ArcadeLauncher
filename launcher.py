@@ -2,7 +2,6 @@
 main.py
 
 Der Haupteinstiegspunkt für den Arcade-Launcher.
-Inklusive AFK-Watchdog und Linux-Display-Fix.
 """
 
 import pygame
@@ -17,35 +16,54 @@ import time
 from config import *
 from assets import init_sprites
 
-# --- SICHERER PYNPUT IMPORT ---
-try:
-    from pynput import mouse, keyboard
-    PYNPUT_AVAILABLE = True
-except Exception as e:
-    logging.error(f"pynput Import blockiert (Wayland oder fehlende Libs): {e}")
-    PYNPUT_AVAILABLE = False
-
-# --- AFK WATCHDOG SETUP ---
+# --- AFK WATCHDOG SETUP (NATIVE OS IDLE TIME) ---
 AFK_TIMEOUT_SECONDS = 180  # 3 Minuten ohne Eingabe = Spiel wird gekillt
-last_input_time = time.time()
 
-def reset_afk_timer(*args, **kwargs):
-    """Wird bei jedem Maus- oder Tastendruck global aufgerufen."""
-    global last_input_time
-    last_input_time = time.time()
+def get_system_idle_time():
+    """
+    Fragt das Betriebssystem nach der aktuellen Inaktivitätszeit in Sekunden.
+    Braucht keine Keylogger-Rechte und läuft zuverlässig im Hintergrund.
+    """
+    os_name = platform.system()
 
-if PYNPUT_AVAILABLE:
-    try:
-        mouse_listener = mouse.Listener(on_move=reset_afk_timer, on_click=reset_afk_timer, on_scroll=reset_afk_timer)
-        keyboard_listener = keyboard.Listener(on_press=reset_afk_timer)
-        mouse_listener.start()
-        keyboard_listener.start()
-        logging.info("AFK-Watchdog erfolgreich gestartet.")
-    except Exception as e:
-        logging.warning(f"AFK-Watchdog konnte nicht gestartet werden: {e}")
-        PYNPUT_AVAILABLE = False
-else:
-    logging.warning("AFK-Timer ist deaktiviert. Launcher läuft ohne Watchdog weiter.")
+    if os_name == "Windows":
+        import ctypes
+        class LASTINPUTINFO(ctypes.Structure):
+            _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
+        
+        lii = LASTINPUTINFO()
+        lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
+        if ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii)):
+            millis = ctypes.windll.kernel32.GetTickCount() - lii.dwTime
+            return millis / 1000.0
+        return 0
+
+    elif os_name == "Darwin":  # macOS
+        try:
+            cmd = "ioreg -c IOHIDSystem | awk '/HIDIdleTime/ {print $NF/1000000000; exit}'"
+            result = subprocess.check_output(cmd, shell=True).decode().strip()
+            return float(result)
+        except Exception:
+            return 0
+
+    elif os_name == "Linux":
+        try:
+            result = subprocess.check_output(["xprintidle"]).decode().strip()
+            return float(result) / 1000.0
+        except Exception:
+            pass
+            
+        try:
+            idle_times = []
+            for dev in os.listdir('/dev/input'):
+                if dev.startswith('event'):
+                    stat = os.stat(f'/dev/input/{dev}')
+                    idle_times.append(time.time() - stat.st_atime)
+            return min(idle_times) if idle_times else 0
+        except Exception:
+            return 0
+
+    return 0
 
 # --- Pygame Basis-Setup ---
 pygame.init()
@@ -136,10 +154,6 @@ running = True
 while running:
     frame_counter += 1
     aktuelles_os = platform.system()
-    
-    # Setzt den Launcher-AFK-Timer zurück, wenn wir im Menü navigieren
-    if time.time() - last_input_time > AFK_TIMEOUT_SECONDS:
-        last_input_time = time.time() 
 
     # --- Event Handling ---
     for event in pygame.event.get():
@@ -190,15 +204,12 @@ while running:
                             
                             if aktuelles_os == "Darwin": pygame.display.iconify()
                             
-                            # --- WATCHDOG LOGIK (Der AFK-Timer) ---
-                            reset_afk_timer() # Timer resetten, bevor das Spiel startet
-                            
                             if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
                                 process = subprocess.Popen(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
                             else:
                                 process = subprocess.Popen([exe_p], cwd=game_dir, env=clean_env)
                             
-                            logging.info(f"Spiel läuft im Hintergrund. AFK-Timer gestartet ({AFK_TIMEOUT_SECONDS}s).")
+                            logging.info(f"Spiel läuft im Hintergrund. OS-AFK-Timer aktiv ({AFK_TIMEOUT_SECONDS}s).")
                             
                             # Der Launcher schläft jetzt, prüft aber jede Sekunde, ob das Spiel noch an ist oder der Timer abgelaufen ist
                             while True:
@@ -207,9 +218,12 @@ while running:
                                     logging.info(f"Erfolgreich beendet: {game_name}")
                                     break
                                 
-                                if time.time() - last_input_time > AFK_TIMEOUT_SECONDS:
+                                # --- NEUE AFK ABFRAGE ---
+                                current_idle_time = get_system_idle_time()
+                                
+                                if current_idle_time > AFK_TIMEOUT_SECONDS:
                                     # AFK LIMIT ERREICHT!
-                                    logging.warning(f"AFK-Timer abgelaufen! Schieße {game_name} ab.")
+                                    logging.warning(f"AFK-Timer abgelaufen ({current_idle_time}s)! Schieße {game_name} ab.")
                                     process.terminate() # Sanftes Kill-Signal senden
                                     try:
                                         process.wait(timeout=3)
@@ -220,17 +234,13 @@ while running:
                                 
                                 pygame.time.wait(1000) # 1 Sekunde warten, um CPU zu schonen
 
-                            # --- UBUNTU FENSTER-FIX ---
-                            # Wenn das Spiel zugeht, verliert der Linux-Fenstermanager oft den Fokus und
-                            # der Launcher bleibt im Hintergrund. Wir starten das Display hart neu.
-                            if aktuelles_os == "Linux":
-                                logging.info("Linux: Führe Display-Reset durch, um Fokus zurückzuholen.")
-                                pygame.time.wait(200) # Dem OS kurz Zeit geben, das alte Fenster abzuräumen
+                            # --- FENSTER-FIX FÜR MAC & LINUX ---
+                            if aktuelles_os in ["Linux", "Darwin"]:
+                                logging.info(f"{aktuelles_os}: Führe Display-Reset durch, um Fullscreen zurückzuholen.")
+                                pygame.time.wait(200) 
                                 pygame.display.quit()
                                 pygame.display.init()
                                 pygame.mouse.set_visible(False)
-                                screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-                            elif aktuelles_os == "Darwin":
                                 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                                 
                             pygame.event.clear()
