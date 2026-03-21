@@ -1,7 +1,9 @@
 """
 main.py
 
-Der Haupteinstiegspunkt für den Arcade-Launcher.
+Haupteinstiegspunkt des Arcade-Launchers.
+Implementiert das Hauptmenü, die dynamische UI-Skalierung (Letterboxing),
+den AFK-Watchdog zur automatischen Prozessbeendigung sowie OS-spezifische Workarounds.
 """
 
 import pygame
@@ -16,65 +18,53 @@ import time
 from config import *
 from assets import init_sprites
 
-# --- AFK WATCHDOG SETUP (NATIVE OS IDLE TIME) ---
-AFK_TIMEOUT_SECONDS = 180  # 3 Minuten ohne Eingabe = Spiel wird gekillt
+# --- Modul-Import: pynput (mit Fallback) ---
+try:
+    from pynput import mouse, keyboard
+    PYNPUT_AVAILABLE = True
+except Exception as e:
+    logging.error(f"pynput Import blockiert (Wayland oder fehlende Libs): {e}")
+    PYNPUT_AVAILABLE = False
 
-def get_system_idle_time():
-    """
-    Fragt das Betriebssystem nach der aktuellen Inaktivitätszeit in Sekunden.
-    Braucht keine Keylogger-Rechte und läuft zuverlässig im Hintergrund.
-    """
-    os_name = platform.system()
+# --- Konfiguration: AFK-Watchdog ---
+AFK_TIMEOUT_SECONDS = 180  # Zeitlimit in Sekunden für Inaktivität, bevor ein laufendes Spiel beendet wird.
+last_input_time = time.time()
 
-    if os_name == "Windows":
-        import ctypes
-        class LASTINPUTINFO(ctypes.Structure):
-            _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
-        
-        lii = LASTINPUTINFO()
-        lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
-        if ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii)):
-            millis = ctypes.windll.kernel32.GetTickCount() - lii.dwTime
-            return millis / 1000.0
-        return 0
+def reset_afk_timer(*args, **kwargs):
+    """Setzt den globalen Inaktivitäts-Timer bei registrierten Eingabeereignissen zurück."""
+    global last_input_time
+    last_input_time = time.time()
 
-    elif os_name == "Darwin":  # macOS
-        try:
-            cmd = "ioreg -c IOHIDSystem | awk '/HIDIdleTime/ {print $NF/1000000000; exit}'"
-            result = subprocess.check_output(cmd, shell=True).decode().strip()
-            return float(result)
-        except Exception:
-            return 0
+if PYNPUT_AVAILABLE:
+    try:
+        mouse_listener = mouse.Listener(on_move=reset_afk_timer, on_click=reset_afk_timer, on_scroll=reset_afk_timer)
+        keyboard_listener = keyboard.Listener(on_press=reset_afk_timer)
+        mouse_listener.start()
+        keyboard_listener.start()
+        logging.info("AFK-Watchdog erfolgreich gestartet.")
+    except Exception as e:
+        logging.warning(f"AFK-Watchdog konnte nicht gestartet werden: {e}")
+        PYNPUT_AVAILABLE = False
+else:
+    logging.warning("AFK-Timer ist deaktiviert. Launcher läuft ohne Watchdog weiter.")
 
-    elif os_name == "Linux":
-        try:
-            result = subprocess.check_output(["xprintidle"]).decode().strip()
-            return float(result) / 1000.0
-        except Exception:
-            pass
-            
-        try:
-            idle_times = []
-            for dev in os.listdir('/dev/input'):
-                if dev.startswith('event'):
-                    stat = os.stat(f'/dev/input/{dev}')
-                    idle_times.append(time.time() - stat.st_atime)
-            return min(idle_times) if idle_times else 0
-        except Exception:
-            return 0
-
-    return 0
-
-# --- Pygame Basis-Setup ---
+# --- Initialisierung: Pygame & Display ---
 pygame.init()
 pygame.mouse.set_visible(False)
-screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-sw, sh = screen.get_size()
+
+# 1. Physische Bildschirmauflösung ermitteln (Fullscreen)
+real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+REAL_W, REAL_H = real_screen.get_size()
+
+# 2. Virtuelle Zeichenfläche (16:9 Basis-Auflösung) für konsistentes UI-Rendering initialisieren
+sw, sh = 1280, 720
+screen = pygame.Surface((sw, sh)) # Sämtliche Zeichenoperationen erfolgen auf dieser virtuellen Surface.
+
 clock = pygame.time.Clock()
 
-logging.info(f"System-Info: {platform.system()} | Auflösung: {sw}x{sh}")
+logging.info(f"System-Info: {platform.system()} | Echter Monitor: {REAL_W}x{REAL_H} | Virtuell: {sw}x{sh}")
 
-# --- Ressourcen laden ---
+# --- Laden der Assets & Typografie ---
 try:
     font_path = get_path("assets/arcade.ttf")
     title_font = pygame.font.Font(font_path, int(sh * 0.12))
@@ -88,7 +78,7 @@ except:
 
 sprites = init_sprites(sh)
 
-# --- Visuelle Effekte vorbereiten ---
+# --- Initialisierung der visuellen Hintergrund-Effekte ---
 stars = [[random.randint(0, sw), random.randint(0, sh), random.randint(1, 3)] for _ in range(100)]
 
 bloom_grid_surf = pygame.Surface((sw, sh), pygame.SRCALPHA)
@@ -115,7 +105,7 @@ def draw_punk_underline(rect, frame):
         block_rect = pygame.Rect(rect.left + i * block_width, underline_y + offset_y, block_width - 2, sh * 0.005)
         pygame.draw.rect(screen, color, block_rect)
 
-# --- Asteroids-Schiff Hintergrund-Animation ---
+# --- Ladelogik: Animiertes Hintergrund-Sprite (Asteroids-Schiff) ---
 base_ship_images = []
 ship_loaded = False
 ship_active = False
@@ -144,7 +134,7 @@ try:
         ship_loaded = True
 except: pass
 
-# --- MAIN LOOP SETUP ---
+# --- Hauptschleife (Main Loop) Setup ---
 selected_index = 0
 error_message = ""
 frame_counter = 0
@@ -154,8 +144,12 @@ running = True
 while running:
     frame_counter += 1
     aktuelles_os = platform.system()
+    
+    # Verhindert das Auslösen des AFK-Timers während der Navigation im Launcher-Menü.
+    if time.time() - last_input_time > AFK_TIMEOUT_SECONDS:
+        last_input_time = time.time() 
 
-    # --- Event Handling ---
+    # --- Ereignisverarbeitung (Event Handling) ---
     for event in pygame.event.get():
         if event.type == pygame.QUIT: 
             logging.info("Beenden durch User (QUIT Event).")
@@ -173,7 +167,7 @@ while running:
             elif event.key == pygame.K_DOWN: 
                 selected_index = (selected_index + 1) % len(games)
             
-            # --- SPIEL STARTEN ---
+            # --- Spielstart-Logik (Launch-Sequenz) ---
             elif event.key == pygame.K_RETURN:
                 game = games[selected_index]
                 game_name = game.get("display_name", "Unbekanntes Spiel")
@@ -196,11 +190,16 @@ while running:
                                 try: os.chmod(exe_p, os.stat(exe_p).st_mode | 0o111)
                                 except Exception as e: logging.warning(f"Konnte chmod nicht setzen: {e}")
 
-                            # Ladebildschirm
+                            # Ladebildschirm rendern und anzeigen
                             screen.fill(BG_COLOR)
                             l_txt = title_font.render("LOADING...", True, NEON_CYAN)
                             screen.blit(l_txt, l_txt.get_rect(center=(sw//2, sh//2)))
                             pygame.display.flip()
+                            
+                            if aktuelles_os == "Darwin": pygame.display.iconify()
+                            
+                            # --- Prozessüberwachung & AFK-Watchdog ---
+                            reset_afk_timer() # Inaktivitäts-Timer vor Prozessstart initialisieren.
                             
                             if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
                                 process = subprocess.Popen(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
@@ -215,30 +214,32 @@ while running:
                             else:
                                 logging.warning(f"OS blockiert Timer (Start-Wert: {idle_at_start}s). AFK-Schutz wird deaktiviert!")
                             
+                            # Blockierende Überwachungsschleife: Prüft periodisch den Prozessstatus und das AFK-Zeitlimit.
                             while True:
                                 if process.poll() is not None:
+                                    # Spielprozess wurde regulär beendet.
                                     logging.info(f"Erfolgreich beendet: {game_name}")
                                     break
                                 
-                                if afk_api_works:
-                                    current_idle_time = get_system_idle_time()
-                                    
-                                    if current_idle_time > AFK_TIMEOUT_SECONDS:
-                                        logging.warning(f"AFK-Timer abgelaufen ({current_idle_time}s)! Schieße {game_name} ab.")
-                                        process.terminate()
-                                        try:
-                                            process.wait(timeout=3)
-                                        except subprocess.TimeoutExpired:
-                                            process.kill() 
-                                        error_message = "AFK: ZURÜCKGESETZT"
-                                        break
+                                if time.time() - last_input_time > AFK_TIMEOUT_SECONDS:
+                                    # AFK-Zeitlimit überschritten.
+                                    logging.warning(f"AFK-Timer abgelaufen! Schieße {game_name} ab.")
+                                    process.terminate() # SIGTERM an den Spielprozess senden.
+                                    try:
+                                        process.wait(timeout=3)
+                                    except subprocess.TimeoutExpired:
+                                        process.kill() # Fallback: SIGKILL, falls der Prozess nicht auf SIGTERM reagiert.
+                                    error_message = "AFK: ZURÜCKGESETZT"
+                                    break
                                 
-                                pygame.time.wait(1000) 
+                                pygame.time.wait(1000) # Polling-Intervall von 1 Sekunde zur Reduzierung der CPU-Last.
 
-                            # --- FENSTER-FIX FÜR MAC & LINUX ---
-                            if aktuelles_os in ["Linux", "Darwin"]:
-                                logging.info(f"{aktuelles_os}: Führe Display-Reset durch, um Fullscreen zurückzuholen.")
-                                pygame.time.wait(200) 
+                            # --- OS-Workaround: Fenster-Fokus (Linux) ---
+                            # Nach Beendigung eines Kindprozesses verliert Pygame unter bestimmten Linux-Window-Managern
+                            # den Fokus. Ein Re-Init des Displays erzwingt den Fokus zurück zum Launcher.
+                            if aktuelles_os == "Linux":
+                                logging.info("Linux: Führe Display-Reset durch, um Fokus zurückzuholen.")
+                                pygame.time.wait(200) # Kurze Verzögerung, um dem OS das Schließen des Spiel-Fensters zu ermöglichen.
                                 pygame.display.quit()
                                 pygame.display.init()
                                 pygame.mouse.set_visible(False)
@@ -257,7 +258,7 @@ while running:
             elif event.key == pygame.K_ESCAPE: 
                 running = False
 
-    # --- Logik Updates ---
+    # --- Aktualisierung der Spiel- und Animationslogik ---
     for star in stars:
         star[1] += star[2]
         if star[1] > sh:
@@ -270,7 +271,7 @@ while running:
     anim_toggle_fast = (frame_counter // 15) % 2 == 0
     anim_toggle_slow = (frame_counter // 25) % 2 == 0
 
-    # --- Renderschleife ---
+    # --- Rendern der Szene (Virtuelle Surface) ---
     screen.fill(BG_COLOR)
     screen.blit(bloom_grid_surf, (0, 0))
 
@@ -381,6 +382,25 @@ while running:
         screen.blit(e_surf, (int(sw//2 - e_surf.get_width()//2), int(sh*0.82)))
 
     draw_scanlines(frame_counter)
+
+    # --- Finales Rendering: Letterboxing & Skalierung ---
+    # Maximalen Skalierungsfaktor zur Beibehaltung des 16:9-Seitenverhältnisses berechnen.
+    scale_factor = min(REAL_W / sw, REAL_H / sh)
+    new_w = int(sw * scale_factor)
+    new_h = int(sh * scale_factor)
+    
+    # Virtuelle Surface auf die ermittelte Zielgröße transformieren.
+    scaled_screen = pygame.transform.scale(screen, (new_w, new_h))
+    
+    # Offsets für eine zentrierte Platzierung (Pillarboxing/Letterboxing) berechnen.
+    x_offset = (REAL_W - new_w) // 2
+    y_offset = (REAL_H - new_h) // 2
+    
+    # Physischen Bildschirm leeren und die skalierte Surface zentriert zeichnen.
+    real_screen.fill((0, 0, 0))
+    real_screen.blit(scaled_screen, (x_offset, y_offset))
+
+    # Double-Buffering anwenden (Frame auf dem Display ausgeben).
     pygame.display.flip()
     clock.tick(60)
 
