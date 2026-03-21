@@ -182,11 +182,20 @@ while running:
                         try:
                             game_dir = os.path.dirname(exe_p)
                             
-                            # --- 1. PYINSTALLER INCEPTION FIX ---
+                            # --- 1. PYINSTALLER INCEPTION FIX (DLL & ASSETS) ---
                             clean_env = os.environ.copy()
-                            # WICHTIG: _MEIPASS und _MEIPASS2 zwingend hinzufügen, sonst crashen Child-Apps!
+                            
+                            # Standard-Variablen entfernen, die Child-Prozesse verwirren
                             for var in ['LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONHOME', 'PYTHONPATH', '_MEIPASS', '_MEIPASS2']:
                                 clean_env.pop(var, None)
+                                
+                            # WICHTIG FÜR WINDOWS: Den Temp-Ordner des Launchers aus dem PATH filtern!
+                            # Ansonsten lädt das Spiel fremde DLLs vom Launcher, was zu 
+                            # GET_SYSTEM_IDLE_TIME Fehlern führt und das Laden von Bildern blockiert.
+                            if hasattr(sys, '_MEIPASS'):
+                                paths = clean_env.get('PATH', '').split(os.pathsep)
+                                clean_paths = [p for p in paths if sys._MEIPASS not in p]
+                                clean_env['PATH'] = os.pathsep.join(clean_paths)
 
                             if aktuelles_os in ["Linux", "Darwin"]:
                                 try: os.chmod(exe_p, os.stat(exe_p).st_mode | 0o111)
@@ -197,7 +206,6 @@ while running:
                             l_txt = title_font.render("LOADING...", True, NEON_CYAN)
                             screen.blit(l_txt, l_txt.get_rect(center=(sw//2, sh//2)))
                             
-                            # Die virtuelle Fläche einmalig skalieren und an den ECHTEN Monitor schicken
                             scale_f = min(REAL_W / sw, REAL_H / sh)
                             temp_scaled = pygame.transform.scale(screen, (int(sw * scale_f), int(sh * scale_f)))
                             real_screen.fill((0, 0, 0))
@@ -207,7 +215,7 @@ while running:
                             if aktuelles_os == "Darwin": pygame.display.iconify()
                             
                             # --- WATCHDOG LOGIK (Der AFK-Timer) ---
-                            reset_afk_timer() # Inaktivitäts-Timer vor Prozessstart initialisieren.
+                            reset_afk_timer() 
                             
                             if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
                                 process = subprocess.Popen(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
