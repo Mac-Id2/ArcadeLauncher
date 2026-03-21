@@ -182,19 +182,29 @@ while running:
                         try:
                             game_dir = os.path.dirname(exe_p)
                             
-                            # --- 1. PYINSTALLER INCEPTION FIX (DLL & ASSETS) ---
+                            # --- 1. BULLETPROOF PYINSTALLER INCEPTION FIX ---
                             clean_env = os.environ.copy()
                             
-                            # Standard-Variablen entfernen, die Child-Prozesse verwirren
-                            for var in ['LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONHOME', 'PYTHONPATH', '_MEIPASS', '_MEIPASS2']:
-                                clean_env.pop(var, None)
+                            # Alle bekannten Stör-Variablen entfernen
+                            vars_to_remove = [
+                                'LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONHOME', 'PYTHONPATH', 
+                                '_MEIPASS', '_MEIPASS2'
+                            ]
+                            
+                            # Auch alle versteckten PyInstaller-internen Variablen (_PYI_...) gnadenlos löschen
+                            for k in list(clean_env.keys()):
+                                if k.startswith('_PYI_') or k in vars_to_remove:
+                                    clean_env.pop(k, None)
                                 
-                            # WICHTIG FÜR WINDOWS: Den Temp-Ordner des Launchers aus dem PATH filtern!
-                            # Ansonsten lädt das Spiel fremde DLLs vom Launcher, was zu 
-                            # GET_SYSTEM_IDLE_TIME Fehlern führt und das Laden von Bildern blockiert.
+                            # WINDOWS PATH FILTER (Jetzt Case-Insensitive und absolut sicher!)
                             if hasattr(sys, '_MEIPASS'):
-                                paths = clean_env.get('PATH', '').split(os.pathsep)
-                                clean_paths = [p for p in paths if sys._MEIPASS not in p]
+                                mei_path = os.path.normcase(sys._MEIPASS) # Zwingt den Pfad in Kleinbuchstaben
+                                current_path = clean_env.get('PATH', '')
+                                
+                                clean_paths = [
+                                    p for p in current_path.split(os.pathsep) 
+                                    if mei_path not in os.path.normcase(p)
+                                ]
                                 clean_env['PATH'] = os.pathsep.join(clean_paths)
 
                             if aktuelles_os in ["Linux", "Darwin"]:
