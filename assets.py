@@ -1,17 +1,20 @@
 """
 assets.py
 
-Behandelt die Generierung der Menü-Sprites.
-Um externe Bilddateien zu sparen, werden die Retro-Sprites hier aus 
-ASCII-Matrizen direkt zur Laufzeit in Pygame-Surfaces gerendert.
+Modul zur prozeduralen Generierung von UI- und Menü-Sprites.
+Konvertiert ASCII-basierte Bildmatrizen zur Laufzeit in native Pygame-Surfaces,
+um den Speicherbedarf zu minimieren und externe Dateiabhängigkeiten zu reduzieren.
 """
 
 import pygame
 from config import WHITE, NEON_GREEN, NEON_CYAN, NEON_YELLOW, RED, NEON_PINK
 
-# --- PIXEL ART MATRIZEN ---
-# Jedes Zeichen repräsentiert einen Pixel. 
-# '#' = Hauptfarbe, 'W' = Weiß, 'B' = Blau, ' ' = Transparent
+# --- Sprite-Definitionen (Pixel-Art-Matrizen) ---
+# Kodierung der Pixel-Werte:
+# '#' = Primärfarbe (wird beim Rendering dynamisch übergeben)
+# 'W' = Weiß (RGB: 255, 255, 255)
+# 'B' = Blau (RGB: 30, 30, 255)
+# ' ' (Leerzeichen) = Transparent (Alpha-Kanal 0)
 INVADER_1 = [
     "  #     #  ",
     "   #   #   ",
@@ -132,12 +135,12 @@ ASTEROID_2 = [
 
 def create_sprite(matrix, main_color, scale):
     """
-    Konvertiert eine ASCII-String-Matrix in ein Pygame Surface.
+    Konvertiert eine ASCII-String-Matrix in ein renderfähiges Pygame-Surface mit Alphakanal.
     
-    :param matrix: Liste von Strings (die ASCII-Art)
-    :param main_color: RGB Tuple für das Hauptzeichen '#'
-    :param scale: Größe eines "Pixels" auf dem Bildschirm in echten Pixeln
-    :return: Gerendertes pygame.Surface mit Alphakanal
+    :param matrix: List[str] - Die ASCII-Art-Repräsentation des Sprites.
+    :param main_color: Tuple[int, int, int] - RGB-Farbwert für den Hauptpixel ('#').
+    :param scale: int - Skalierungsfaktor (Größe eines logischen Pixels in physischen Pixeln).
+    :return: pygame.Surface - Das gerenderte Sprite-Objekt.
     """
     w, h = len(matrix[0]), len(matrix)
     surf = pygame.Surface((w * scale, h * scale), pygame.SRCALPHA)
@@ -155,11 +158,10 @@ def create_sprite(matrix, main_color, scale):
 
 def init_sprites(sh):
     """
-    Initialisiert alle Sprites in der korrekten Skalierung für die aktuelle
-    Bildschirmauflösung (berechnet anhand der Bildschirmhöhe 'sh').
+    Initialisiert und skaliert alle System-Sprites dynamisch basierend auf der vertikalen Bildschirmauflösung.
     
-    :param sh: Bildschirmhöhe in Pixeln
-    :return: Dictionary mit allen generierten Sprite-Surfaces
+    :param sh: int - Aktuelle Bildschirmhöhe in Pixeln zur Berechnung des Skalierungsfaktors.
+    :return: dict - Dictionary mit allen initialisierten und skalierten pygame.Surface-Objekten.
     """
     scale_size = max(4, int(sh * 0.008))
     

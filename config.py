@@ -1,8 +1,9 @@
 """
 config.py
 
-Zentrales Konfigurationsmodul für den Arcade-Launcher.
-Inklusive Fail-Safe Logging und defensivem JSON-Parsing für Produktionssicherheit.
+Zentrales Konfigurationsmodul des Arcade-Launchers.
+Implementiert die Umgebungserkennung (PyInstaller-Kompatibilität), robustes
+Fallback-Logging und das defensive Parsing der Anwendungsdaten.
 """
 
 import os
@@ -11,7 +12,7 @@ import json
 import logging
 import pygame
 
-# --- Pfad-Logik für PyInstaller ---
+# --- Ermittlung des Ausführungskontexts (PyInstaller Bundle vs. reguläres Python-Skript) ---
 if getattr(sys, "frozen", False):
     RESOURCE_PATH = os.path.dirname(sys.executable)
 else:
@@ -20,10 +21,10 @@ else:
 GAME_BASE_PATH = RESOURCE_PATH
 os.chdir(RESOURCE_PATH)
 
-# --- PRODUKTIONS-LOGGING (Fail-Safe) ---
+# --- Initialisierung des Fehlerprotokolls (Fail-Safe Logging) ---
 LOG_FILE = os.path.join(GAME_BASE_PATH, "launcher.log")
 try:
-    # Versuche, eine Log-Datei im Spielordner anzulegen
+    # Primärer Logging-Ansatz: Dateibasierte Aufzeichnung im Anwendungsverzeichnis
     logging.basicConfig(
         filename=LOG_FILE,
         level=logging.INFO,
@@ -32,16 +33,18 @@ try:
     )
     logging.info("=== LAUNCHER GESTARTET ===")
 except Exception:
-    # Fallback: Wenn Schreibrechte fehlen, logge nur kritische Fehler ins Nichts (kein Crash!)
+    # Fallback: Reduziertes Logging ohne Datei-I/O bei fehlenden Schreibberechtigungen zur Vermeidung von Applikationsabstürzen.
     logging.basicConfig(level=logging.CRITICAL)
 
 def get_path(rel_path):
+    """Löst relative Pfade für systeminterne Launcher-Ressourcen auf."""
     return os.path.abspath(os.path.join(RESOURCE_PATH, rel_path))
 
 def get_game_path(rel_path):
+    """Löst relative Pfade für externe Spiel-Binärdateien auf."""
     return os.path.abspath(os.path.join(GAME_BASE_PATH, rel_path))
 
-# --- Globale Farbkonstanten ---
+# --- Definition globaler Farbkonstanten (RGB-Werte) ---
 BG_COLOR = (5, 5, 15)      
 NEON_CYAN = (0, 255, 255)
 NEON_PINK = (255, 20, 147)
@@ -57,7 +60,12 @@ PUNK_COLORS = [NEON_CYAN, NEON_PINK, NEON_YELLOW, NEON_GREEN, NEON_RED]
 CONFIG_FILE = os.path.join(RESOURCE_PATH, "games.json")
 
 def load_games_config():
-    """Lädt die games.json defensiv. Stürzt nie ab, selbst bei fehlerhafter Datei."""
+    """
+    Parst die Konfigurationsdatei (games.json) defensiv und validiert die Datenstruktur.
+    Implementiert Fallbacks für fehlende oder fehlerhafte Einträge, um Laufzeitfehler zu vermeiden.
+    
+    :return: List[dict] - Eine validierte Liste von Spiel-Definitionen und deren plattformspezifischen Pfaden.
+    """
     if not os.path.exists(CONFIG_FILE):
         logging.warning(f"Konfigurationsdatei fehlt: {CONFIG_FILE}")
         return []
@@ -66,21 +74,21 @@ def load_games_config():
         with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
             
-            # Defensiver Zugriff: Wenn "games" fehlt, nimm eine leere Liste
+            # Defensive Extraktion: Fallback auf leere Liste bei fehlendem Root-Element.
             loaded_games = data.get("games", [])
             valid_games = []
             
             for game in loaded_games:
-                # Prüfe, ob das Dictionary gültig ist und einen "paths" Key hat
+                # Typenprüfung der iterierten Entität
                 if not isinstance(game, dict):
                     continue
                     
                 paths = game.get("paths", {})
                 if not isinstance(paths, dict):
-                    logging.warning(f"Spiel '{game.get('display_name', 'Unbekannt')}' hat ungültige Pfade. Wird ignoriert.")
+                    logging.warning(f"Spiel '{game.get('display_name', 'Unbekannt')}' weist ungültige Pfadstruktur auf. Entität wird ignoriert.")
                     continue
                 
-                # Pfade sicher umwandeln
+                # Konvertierung relativer Konfigurationspfade in absolute Systempfade
                 game["paths"] = {}
                 for os_name, rel_path in paths.items():
                     game["paths"][os_name] = get_game_path(rel_path)
@@ -94,7 +102,7 @@ def load_games_config():
         logging.error(f"JSON Syntax-Fehler in games.json: {e}")
         return []
     except Exception as e:
-        logging.error(f"Unerwarteter Fehler beim Laden der Config: {e}")
+        logging.error(f"Unerwarteter Fehler bei der Konfigurationsauflösung: {e}")
         return []
 
 games = load_games_config()

@@ -20,10 +20,12 @@ jobs:
             artifact_name: windows-x64
           - os: ubuntu-22.04
             artifact_name: linux-x64
+          # macOS 14+ (macos-latest) nutzt Apple Silicon (ARM64 / M1, M2...)
           - os: macos-latest
             artifact_name: macos-arm64
-          # --- NEU: Intel Mac läuft jetzt über den Rosetta-Trick auf dem neuesten Server! ---
-          - os: macos-latest
+          # macOS 13 läuft nativ auf Intel-Servern. 
+          # Viel sicherer als der Rosetta-Trick auf einem ARM-Server!
+          - os: macos-13
             artifact_name: macos-x64
 
     steps:
@@ -38,14 +40,9 @@ jobs:
       - name: Abhängigkeiten installieren
         shell: bash
         run: |
-          if [ "${{ matrix.artifact_name }}" = "macos-x64" ]; then
-            # Zwingt den Server, Pakete für Intel-Prozessoren zu laden
-            arch -x86_64 python -m pip install --upgrade pip
-            arch -x86_64 pip install "setuptools==68.2.2" pygame pyinstaller
-          else
-            python -m pip install --upgrade pip
-            pip install "setuptools==68.2.2" pygame pyinstaller
-          fi
+          python -m pip install --upgrade pip
+          # WICHTIG: pynput hinzugefügt, damit der AFK-Watchdog mit einkompiliert wird!
+          pip install "setuptools==68.2.2" pygame pynput pyinstaller
 
       - name: PyInstaller Build
         shell: bash
@@ -53,12 +50,8 @@ jobs:
           # Ordnerstruktur für Artifact vorbereiten
           mkdir -p dist/final_delivery
           
-          # Der Rosetta-Trick für den eigentlichen Build
-          if [ "${{ matrix.artifact_name }}" = "macos-x64" ]; then
-            arch -x86_64 pyinstaller --noconsole --onefile launcher.py
-          else
-            pyinstaller --noconsole --onefile launcher.py
-          fi
+          # Da wir jetzt saubere OS-Images nutzen, brauchen wir keine if/else Logik mehr für den Build
+          pyinstaller --noconsole --onefile launcher.py
           
           # Binärdatei verschieben (Name unterscheidet sich je nach OS)
           if [ "${{ runner.os }}" = "Windows" ]; then
