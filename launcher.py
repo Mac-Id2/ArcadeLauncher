@@ -232,7 +232,7 @@ while running:
                             else:
                                 process = subprocess.Popen([exe_p], cwd=game_dir, env=clean_env)
                             
-                            idle_at_start = get_system_idle_time()
+                            idle_at_start = reset_afk_timer()
                             afk_api_works = idle_at_start < 10.0
                             
                             if afk_api_works:
