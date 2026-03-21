@@ -206,7 +206,13 @@ while running:
                             else:
                                 process = subprocess.Popen([exe_p], cwd=game_dir, env=clean_env)
                             
-                            logging.info(f"Spiel läuft im Hintergrund. AFK-Timer gestartet ({AFK_TIMEOUT_SECONDS}s).")
+                            idle_at_start = get_system_idle_time()
+                            afk_api_works = idle_at_start < 10.0
+                            
+                            if afk_api_works:
+                                logging.info(f"Spiel läuft. OS-AFK-Timer aktiv ({AFK_TIMEOUT_SECONDS}s).")
+                            else:
+                                logging.warning(f"OS blockiert Timer (Start-Wert: {idle_at_start}s). AFK-Schutz wird deaktiviert!")
                             
                             # Blockierende Überwachungsschleife: Prüft periodisch den Prozessstatus und das AFK-Zeitlimit.
                             while True:
@@ -237,8 +243,6 @@ while running:
                                 pygame.display.quit()
                                 pygame.display.init()
                                 pygame.mouse.set_visible(False)
-                                screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-                            elif aktuelles_os == "Darwin":
                                 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                                 
                             pygame.event.clear()

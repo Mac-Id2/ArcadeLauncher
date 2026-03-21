@@ -47,22 +47,22 @@ jobs:
       - name: PyInstaller Build
         shell: bash
         run: |
-          # Ordnerstruktur für Artifact vorbereiten
           mkdir -p dist/final_delivery
           
           # Da wir jetzt saubere OS-Images nutzen, brauchen wir keine if/else Logik mehr für den Build
           pyinstaller --noconsole --onefile launcher.py
           
-          # Binärdatei verschieben (Name unterscheidet sich je nach OS)
+          # --- KORREKTUR: Pfade und Endungen ---
           if [ "${{ runner.os }}" = "Windows" ]; then
-            mv dist/launcher.exe dist/final_delivery/
+            # Windows behält Launcher.exe
+            mv dist/Launcher.exe dist/final_delivery/
           else
-            mv dist/launcher dist/final_delivery/
-            # WICHTIG: Ausführungsrechte explizit setzen
-            chmod +x dist/final_delivery/launcher
+            # Linux und Mac behalten Launcher (ohne Endung)
+            mv dist/Launcher dist/final_delivery/
+            chmod +x dist/final_delivery/Launcher
           fi
           
-          # Assets kopieren
+          # Assets und JSON kopieren
           [ -d assets ] && cp -r assets dist/final_delivery/
           [ -f games.json ] && cp games.json dist/final_delivery/
 
@@ -71,8 +71,10 @@ jobs:
         run: |
           cd dist/final_delivery
           if [ "${{ runner.os }}" = "Linux" ]; then
+            # Speziell für Linux nutzen wir den nativen Zip-Befehl um Rechte zu wahren
             zip -r "../../Launcher-${{ matrix.artifact_name }}.zip" .
           else
+            # Windows/Mac nutzen das Python-Script zum Archivieren
             python -c "import shutil; shutil.make_archive('../../Launcher-${{ matrix.artifact_name }}', 'zip', '.')"
           fi
 

@@ -12,18 +12,16 @@
             "display_name": "PAC-MAN",
             "paths": {
                 "Windows": "../spiele/Pac-Man/game.exe",
-                "Darwin": "../spiele/Pac-Man/game.app", 
-                "Linux": "../spiele/Pac-Man/game.x86_64"
-
+                "Darwin": "../spiele/Pac-Man/game",
+                "Linux": "../spiele/Pac-Man/game"
             }
         },
         {
             "display_name": "ASTEROIDS",
             "paths": {
                 "Windows": "../spiele/Asteroids/game.exe",
-                "Darwin": "../spiele/Asteroids/game.app",
+                "Darwin": "../spiele/Asteroids/game",
                 "Linux": "../spiele/Asteroids/game"
-
             }
         }
     ]
