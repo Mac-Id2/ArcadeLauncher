@@ -1,5 +1,5 @@
 """
-main.py
+launcher.py
 
 Haupteinstiegspunkt des Arcade-Launchers.
 Implementiert das Hauptmenü, die dynamische UI-Skalierung (Letterboxing),
@@ -15,6 +15,9 @@ import math
 import random
 import logging
 import time
+
+os.environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
+
 from config import *
 from assets import init_sprites
 
@@ -50,6 +53,12 @@ else:
 
 # --- Initialisierung: Pygame & Display ---
 pygame.init()
+
+pygame.joystick.init()
+joysticks = [pygame.joystick.Joystick(i) for i in range(pygame.joystick.get_count())]
+for joy in joysticks:
+    joy.init()
+
 pygame.mouse.set_visible(False)
 
 # 1. Physische Bildschirmauflösung ermitteln (Fullscreen)
@@ -241,6 +250,11 @@ while running:
                                     logging.info(f"Erfolgreich beendet: {game_name}")
                                     break
                                 
+                                pygame.event.pump()
+                                for ev in pygame.event.get():
+                                    if ev.type in (pygame.JOYBUTTONDOWN, pygame.JOYAXISMOTION, pygame.JOYHATMOTION, pygame.KEYDOWN, pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN):
+                                        reset_afk_timer()
+
                                 if time.time() - last_input_time > AFK_TIMEOUT_SECONDS:
                                     # AFK-Zeitlimit überschritten.
                                     logging.warning(f"AFK-Timer abgelaufen! Schieße {game_name} ab.")
