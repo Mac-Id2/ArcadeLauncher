@@ -319,9 +319,9 @@ while running:
             
             if sel:
                 for off in [2, -2]:
-                    shadow_surf = menu_font.render(txt, True, (200, 200, 0))
-                    shadow_surf.set_alpha(150)
-                    screen.blit(shadow_surf, m_rect.move(off, off))
+                        # Mac-Fix: Auf set_alpha() verzichten und stattdessen eine dunklere Farbe nutzen
+                        shadow_surf = menu_font.render(txt, True, (100, 100, 0))
+                        screen.blit(shadow_surf, m_rect.move(off, off))
                     
                 screen.blit(menu_font.render(txt, True, NEON_YELLOW), m_rect)
                 
