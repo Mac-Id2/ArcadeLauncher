@@ -2,8 +2,8 @@
 launcher.py
 
 Haupteinstiegspunkt des Arcade-Launchers.
-Implementiert das Hauptmenü, die dynamische UI-Skalierung (Letterboxing),
-den AFK-Watchdog zur automatischen Prozessbeendigung sowie OS-spezifische Workarounds.
+Implementiert das Hauptmenü, die dynamische UI-Skalierung (Letterboxing)
+sowie OS-spezifische Workarounds zum Starten der Spiele.
 """
 
 import pygame
@@ -16,49 +16,11 @@ import random
 import logging
 import time
 
-os.environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
-
 from config import *
 from assets import init_sprites
 
-# --- Modul-Import: pynput (mit Fallback) ---
-try:
-    from pynput import mouse, keyboard
-    PYNPUT_AVAILABLE = True
-except Exception as e:
-    logging.error(f"pynput Import blockiert (Wayland oder fehlende Libs): {e}")
-    PYNPUT_AVAILABLE = False
-
-# --- Konfiguration: AFK-Watchdog ---
-AFK_TIMEOUT_SECONDS = 180  # Zeitlimit in Sekunden für Inaktivität, bevor ein laufendes Spiel beendet wird.
-last_input_time = time.time()
-
-def reset_afk_timer(*args, **kwargs):
-    """Setzt den globalen Inaktivitäts-Timer bei registrierten Eingabeereignissen zurück."""
-    global last_input_time
-    last_input_time = time.time()
-
-if PYNPUT_AVAILABLE:
-    try:
-        mouse_listener = mouse.Listener(on_move=reset_afk_timer, on_click=reset_afk_timer, on_scroll=reset_afk_timer)
-        keyboard_listener = keyboard.Listener(on_press=reset_afk_timer)
-        mouse_listener.start()
-        keyboard_listener.start()
-        logging.info("AFK-Watchdog erfolgreich gestartet.")
-    except Exception as e:
-        logging.warning(f"AFK-Watchdog konnte nicht gestartet werden: {e}")
-        PYNPUT_AVAILABLE = False
-else:
-    logging.warning("AFK-Timer ist deaktiviert. Launcher läuft ohne Watchdog weiter.")
-
 # --- Initialisierung: Pygame & Display ---
 pygame.init()
-
-pygame.joystick.init()
-joysticks = [pygame.joystick.Joystick(i) for i in range(pygame.joystick.get_count())]
-for joy in joysticks:
-    joy.init()
-
 pygame.mouse.set_visible(False)
 
 # 1. Physische Bildschirmauflösung ermitteln (Fullscreen)
@@ -153,10 +115,6 @@ running = True
 while running:
     frame_counter += 1
     aktuelles_os = platform.system()
-    
-    # Verhindert das Auslösen des AFK-Timers während der Navigation im Launcher-Menü.
-    if time.time() - last_input_time > AFK_TIMEOUT_SECONDS:
-        last_input_time = time.time() 
 
     # --- Ereignisverarbeitung (Event Handling) ---
     for event in pygame.event.get():
@@ -233,37 +191,19 @@ while running:
                             
                             if aktuelles_os == "Darwin": pygame.display.iconify()
                             
-                            # --- WATCHDOG LOGIK (Der AFK-Timer) ---
-                            reset_afk_timer() 
-                            
+                            # --- SPIEL STARTEN ---
                             if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
                                 process = subprocess.Popen(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
                             else:
                                 process = subprocess.Popen([exe_p], cwd=game_dir, env=clean_env)
                             
-                            logging.info(f"Spiel läuft im Hintergrund. AFK-Timer gestartet ({AFK_TIMEOUT_SECONDS}s).")
+                            logging.info(f"Spiel läuft im Vordergrund.")
                             
-                            # Blockierende Überwachungsschleife: Prüft periodisch den Prozessstatus und das AFK-Zeitlimit.
+                            # Blockierende Überwachungsschleife: Prüft periodisch den Prozessstatus
                             while True:
                                 if process.poll() is not None:
                                     # Spielprozess wurde regulär beendet.
                                     logging.info(f"Erfolgreich beendet: {game_name}")
-                                    break
-                                
-                                pygame.event.pump()
-                                for ev in pygame.event.get():
-                                    if ev.type in (pygame.JOYBUTTONDOWN, pygame.JOYAXISMOTION, pygame.JOYHATMOTION, pygame.KEYDOWN, pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN):
-                                        reset_afk_timer()
-
-                                if time.time() - last_input_time > AFK_TIMEOUT_SECONDS:
-                                    # AFK-Zeitlimit überschritten.
-                                    logging.warning(f"AFK-Timer abgelaufen! Schieße {game_name} ab.")
-                                    process.terminate() # SIGTERM an den Spielprozess senden.
-                                    try:
-                                        process.wait(timeout=3)
-                                    except subprocess.TimeoutExpired:
-                                        process.kill() # Fallback: SIGKILL, falls der Prozess nicht auf SIGTERM reagiert.
-                                    error_message = "AFK: ZURÜCKGESETZT"
                                     break
                                 
                                 pygame.time.wait(1000) # Polling-Intervall von 1 Sekunde zur Reduzierung der CPU-Last.
