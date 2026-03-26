@@ -1,10 +1,11 @@
 name: Build Arcade Launcher
 
+# Definiert die Auslöser (Triggers) für diese Pipeline.
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Ermöglicht den manuellen Start über die GitHub-Oberfläche.
   push:
     tags:
-      - 'v*'
+      - 'v*' # Löst die Pipeline automatisch aus, wenn ein neuer Versions-Tag (z.B. v1.0.0) gepusht wird.
 
 jobs:
   build:
@@ -12,8 +13,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
+    
+    # --- Build-Matrix (Plattform-Definitionen) ---
     strategy:
-      fail-fast: false
+      fail-fast: false # Verhindert, dass alle Builds abbrechen, falls ein einzelnes OS fehlschlägt.
       matrix:
         include:
           - os: windows-latest
@@ -21,15 +24,15 @@ jobs:
           - os: ubuntu-22.04
             artifact_name: linux-x64
           - os: macos-latest
-            artifact_name: macos-arm64
+            artifact_name: macos-arm64 # Nativer Build für Apple Silicon (M1/M2/M3)
           - os: macos-latest
-            artifact_name: macos-x64
+            artifact_name: macos-x64   # Emulierter Build für Intel Macs (via Rosetta 2)
 
     steps:
       - name: Code auschecken
         uses: actions/checkout@v4
 
-      - name: Python installieren
+      - name: Python initialisieren
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
@@ -37,75 +40,82 @@ jobs:
       - name: Abhängigkeiten installieren
         shell: bash
         run: |
+          # --- Workaround für macOS Intel (x64) Builds ---
+          # Da GitHub Actions native Intel-Runner (macos-13) depräkatiert hat ("not supported"),
+          # erzwingen wir hier die Ausführung von Python/Pip unter der Rosetta 2 (x86_64) Emulation 
+          # auf dem ARM-Server (macos-latest).
           if [ "${{ matrix.artifact_name }}" = "macos-x64" ]; then
             arch -x86_64 python -m pip install --upgrade pip
-            arch -x86_64 pip install "setuptools==68.2.2" pygame pyinstaller pynput
+            arch -x86_64 pip install "setuptools==68.2.2" pygame pynput pyinstaller
           else
+            # Standard-Installation für Windows, Linux und macOS ARM
             python -m pip install --upgrade pip
-            pip install "setuptools==68.2.2" pygame pyinstaller pynput
+            pip install "setuptools==68.2.2" pygame pynput pyinstaller
           fi
 
-      - name: PyInstaller Build
+      - name: PyInstaller Build-Prozess
         shell: bash
         run: |
+          # Zielverzeichnis für das finale Release-Archiv anlegen
           mkdir -p dist/final_delivery
           
-          # Build-Befehl (Name wird hier groß geschrieben: Launcher)
+          # --- PyInstaller Ausführung ---
+          # Auch der Build-Prozess selbst muss für Intel-Macs zwingend durch Rosetta geroutet werden.
           if [ "${{ matrix.artifact_name }}" = "macos-x64" ]; then
-            arch -x86_64 pyinstaller --noconsole --onefile --collect-all pynput --name Launcher launcher.py
+            arch -x86_64 pyinstaller --noconsole --onefile launcher.py
           else
-            pyinstaller --noconsole --onefile --collect-all pynput --name Launcher launcher.py
+            pyinstaller --noconsole --onefile launcher.py
           fi
           
-          # --- KORREKTUR: Pfade und Endungen ---
+          # --- Binärdateien strukturieren ---
           if [ "${{ runner.os }}" = "Windows" ]; then
-            # Windows behält Launcher.exe
-            mv dist/Launcher.exe dist/final_delivery/
+            mv dist/launcher.exe dist/final_delivery/
           else
-            # Linux und Mac behalten Launcher (ohne Endung)
-            mv dist/Launcher dist/final_delivery/
-            chmod +x dist/final_delivery/Launcher
+            mv dist/launcher dist/final_delivery/
+            # WICHTIG: Unter unixoiden Systemen müssen die Ausführungsrechte nach dem Verschieben explizit neu gesetzt werden.
+            chmod +x dist/final_delivery/launcher
           fi
           
-          # Assets und JSON kopieren
+          # Statische Ressourcen (Assets & Config) in das Auslieferungsverzeichnis kopieren
           [ -d assets ] && cp -r assets dist/final_delivery/
           [ -f games.json ] && cp games.json dist/final_delivery/
 
-      - name: Archivieren
+      - name: Release-Archivierung (ZIP)
         shell: bash
         run: |
           cd dist/final_delivery
+          # OS-spezifische ZIP-Erstellung (Windows Runner haben standardmäßig kein 'zip' Kommando, daher der Python-Fallback)
           if [ "${{ runner.os }}" = "Linux" ]; then
-            # Speziell für Linux nutzen wir den nativen Zip-Befehl um Rechte zu wahren
             zip -r "../../Launcher-${{ matrix.artifact_name }}.zip" .
           else
-            # Windows/Mac nutzen das Python-Script zum Archivieren
             python -c "import shutil; shutil.make_archive('../../Launcher-${{ matrix.artifact_name }}', 'zip', '.')"
           fi
 
-      - name: Artifact hochladen
+      - name: Temporäres Artifact hochladen
         uses: actions/upload-artifact@v4
         with:
           name: Launcher-${{ matrix.artifact_name }}
           path: Launcher-${{ matrix.artifact_name }}.zip
           retention-days: 7
 
+  # --- Automatisches GitHub Release ---
   release:
     name: GitHub Release erstellen
     runs-on: ubuntu-latest
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/')
+    needs: build # Wartet zwingend auf den erfolgreichen Abschluss aller Build-Jobs aus der Matrix
+    if: startsWith(github.ref, 'refs/tags/') # Wird nur bei Version-Tags ausgeführt, nicht bei manuellen Dispatches
     permissions:
       contents: write
     steps:
-      - name: Alle Artifacts herunterladen
+      - name: Alle kompilierten Artifacts sammeln
         uses: actions/download-artifact@v4
         with:
           path: artifacts/
 
-      - name: Release erstellen und Assets hochladen
+      - name: Release publizieren und Assets anheften
         uses: softprops/action-gh-release@v2
         with:
+          # Greift alle zuvor erstellten ZIP-Dateien ab und hängt sie an das Release an
           files: artifacts/**/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

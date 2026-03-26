@@ -1,7 +1,9 @@
 """
-main.py
+launcher.py
 
-Der Haupteinstiegspunkt für den Arcade-Launcher.
+Haupteinstiegspunkt des Arcade-Launchers.
+Implementiert das Hauptmenü, die dynamische UI-Skalierung (Letterboxing)
+sowie OS-spezifische Workarounds zum Starten der Spiele.
 """
 
 import pygame
@@ -13,68 +15,27 @@ import math
 import random
 import logging
 import time
+
 from config import *
 from assets import init_sprites
 
-# --- AFK WATCHDOG SETUP (NATIVE OS IDLE TIME) ---
-AFK_TIMEOUT_SECONDS = 180  # 3 Minuten ohne Eingabe = Spiel wird gekillt
-
-def get_system_idle_time():
-    """
-    Fragt das Betriebssystem nach der aktuellen Inaktivitätszeit in Sekunden.
-    Braucht keine Keylogger-Rechte und läuft zuverlässig im Hintergrund.
-    """
-    os_name = platform.system()
-
-    if os_name == "Windows":
-        import ctypes
-        class LASTINPUTINFO(ctypes.Structure):
-            _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
-        
-        lii = LASTINPUTINFO()
-        lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
-        if ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii)):
-            millis = ctypes.windll.kernel32.GetTickCount() - lii.dwTime
-            return millis / 1000.0
-        return 0
-
-    elif os_name == "Darwin":  # macOS
-        try:
-            cmd = "ioreg -c IOHIDSystem | awk '/HIDIdleTime/ {print $NF/1000000000; exit}'"
-            result = subprocess.check_output(cmd, shell=True).decode().strip()
-            return float(result)
-        except Exception:
-            return 0
-
-    elif os_name == "Linux":
-        try:
-            result = subprocess.check_output(["xprintidle"]).decode().strip()
-            return float(result) / 1000.0
-        except Exception:
-            pass
-            
-        try:
-            idle_times = []
-            for dev in os.listdir('/dev/input'):
-                if dev.startswith('event'):
-                    stat = os.stat(f'/dev/input/{dev}')
-                    idle_times.append(time.time() - stat.st_atime)
-            return min(idle_times) if idle_times else 0
-        except Exception:
-            return 0
-
-    return 0
-
-# --- Pygame Basis-Setup ---
+# --- Initialisierung: Pygame & Display ---
 pygame.init()
 pygame.mouse.set_visible(False)
-screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-sw, sh = screen.get_size()
+
+# 1. Physische Bildschirmauflösung ermitteln (Fullscreen)
+real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+REAL_W, REAL_H = real_screen.get_size()
+
+# 2. Virtuelle Zeichenfläche (16:9 Basis-Auflösung) für konsistentes UI-Rendering initialisieren
+sw, sh = 1280, 720
+screen = pygame.Surface((sw, sh)) # Sämtliche Zeichenoperationen erfolgen auf dieser virtuellen Surface.
+
 clock = pygame.time.Clock()
 
-logging.info(f"System-Info: {platform.system()} | Auflösung: {sw}x{sh}")
+logging.info(f"System-Info: {platform.system()} | Echter Monitor: {REAL_W}x{REAL_H} | Virtuell: {sw}x{sh}")
 
-# --- Ressourcen laden ---
+# --- Laden der Assets & Typografie ---
 try:
     font_path = get_path("assets/arcade.ttf")
     title_font = pygame.font.Font(font_path, int(sh * 0.12))
@@ -88,7 +49,7 @@ except:
 
 sprites = init_sprites(sh)
 
-# --- Visuelle Effekte vorbereiten ---
+# --- Initialisierung der visuellen Hintergrund-Effekte ---
 stars = [[random.randint(0, sw), random.randint(0, sh), random.randint(1, 3)] for _ in range(100)]
 
 bloom_grid_surf = pygame.Surface((sw, sh), pygame.SRCALPHA)
@@ -115,7 +76,7 @@ def draw_punk_underline(rect, frame):
         block_rect = pygame.Rect(rect.left + i * block_width, underline_y + offset_y, block_width - 2, sh * 0.005)
         pygame.draw.rect(screen, color, block_rect)
 
-# --- Asteroids-Schiff Hintergrund-Animation ---
+# --- Ladelogik: Animiertes Hintergrund-Sprite (Asteroids-Schiff) ---
 base_ship_images = []
 ship_loaded = False
 ship_active = False
@@ -144,7 +105,7 @@ try:
         ship_loaded = True
 except: pass
 
-# --- MAIN LOOP SETUP ---
+# --- Hauptschleife (Main Loop) Setup ---
 selected_index = 0
 error_message = ""
 frame_counter = 0
@@ -155,7 +116,7 @@ while running:
     frame_counter += 1
     aktuelles_os = platform.system()
 
-    # --- Event Handling ---
+    # --- Ereignisverarbeitung (Event Handling) ---
     for event in pygame.event.get():
         if event.type == pygame.QUIT: 
             logging.info("Beenden durch User (QUIT Event).")
@@ -188,61 +149,77 @@ while running:
                         try:
                             game_dir = os.path.dirname(exe_p)
                             
+                            # --- 1. BULLETPROOF PYINSTALLER INCEPTION FIX ---
                             clean_env = os.environ.copy()
-                            for var in ['LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONHOME', 'PYTHONPATH']:
-                                clean_env.pop(var, None)
+                            
+                            # Alle bekannten Stör-Variablen entfernen
+                            vars_to_remove = [
+                                'LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONHOME', 'PYTHONPATH', 
+                                '_MEIPASS', '_MEIPASS2'
+                            ]
+                            
+                            # Auch alle versteckten PyInstaller-internen Variablen (_PYI_...) gnadenlos löschen
+                            for k in list(clean_env.keys()):
+                                if k.startswith('_PYI_') or k in vars_to_remove:
+                                    clean_env.pop(k, None)
+                                
+                            # WINDOWS PATH FILTER (Case-Insensitive und sicher)
+                            if hasattr(sys, '_MEIPASS'):
+                                mei_path = os.path.normcase(sys._MEIPASS) 
+                                current_path = clean_env.get('PATH', '')
+                                
+                                clean_paths = [
+                                    p for p in current_path.split(os.pathsep) 
+                                    if mei_path not in os.path.normcase(p)
+                                ]
+                                clean_env['PATH'] = os.pathsep.join(clean_paths)
 
                             if aktuelles_os in ["Linux", "Darwin"]:
                                 try: os.chmod(exe_p, os.stat(exe_p).st_mode | 0o111)
                                 except Exception as e: logging.warning(f"Konnte chmod nicht setzen: {e}")
 
-                            # Ladebildschirm
+                            # --- 2. LADEBILDSCHIRM SICHTBAR MACHEN ---
                             screen.fill(BG_COLOR)
                             l_txt = title_font.render("LOADING...", True, NEON_CYAN)
                             screen.blit(l_txt, l_txt.get_rect(center=(sw//2, sh//2)))
+                            
+                            scale_f = min(REAL_W / sw, REAL_H / sh)
+                            temp_scaled = pygame.transform.scale(screen, (int(sw * scale_f), int(sh * scale_f)))
+                            real_screen.fill((0, 0, 0))
+                            real_screen.blit(temp_scaled, ((REAL_W - temp_scaled.get_width()) // 2, (REAL_H - temp_scaled.get_height()) // 2))
                             pygame.display.flip()
                             
+                            if aktuelles_os == "Darwin": pygame.display.iconify()
+                            
+                            # --- SPIEL STARTEN ---
                             if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
                                 process = subprocess.Popen(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
                             else:
                                 process = subprocess.Popen([exe_p], cwd=game_dir, env=clean_env)
                             
-                            idle_at_start = get_system_idle_time()
-                            afk_api_works = idle_at_start < 10.0
+                            logging.info(f"Spiel läuft im Vordergrund.")
                             
-                            if afk_api_works:
-                                logging.info(f"Spiel läuft. OS-AFK-Timer aktiv ({AFK_TIMEOUT_SECONDS}s).")
-                            else:
-                                logging.warning(f"OS blockiert Timer (Start-Wert: {idle_at_start}s). AFK-Schutz wird deaktiviert!")
-                            
+                            # Blockierende Überwachungsschleife: Prüft periodisch den Prozessstatus
                             while True:
                                 if process.poll() is not None:
+                                    # Spielprozess wurde regulär beendet.
                                     logging.info(f"Erfolgreich beendet: {game_name}")
                                     break
                                 
-                                if afk_api_works:
-                                    current_idle_time = get_system_idle_time()
-                                    
-                                    if current_idle_time > AFK_TIMEOUT_SECONDS:
-                                        logging.warning(f"AFK-Timer abgelaufen ({current_idle_time}s)! Schieße {game_name} ab.")
-                                        process.terminate()
-                                        try:
-                                            process.wait(timeout=3)
-                                        except subprocess.TimeoutExpired:
-                                            process.kill() 
-                                        error_message = "AFK: ZURÜCKGESETZT"
-                                        break
-                                
-                                pygame.time.wait(1000) 
+                                pygame.time.wait(1000) # Polling-Intervall von 1 Sekunde zur Reduzierung der CPU-Last.
 
-                            # --- FENSTER-FIX FÜR MAC & LINUX ---
-                            if aktuelles_os in ["Linux", "Darwin"]:
-                                logging.info(f"{aktuelles_os}: Führe Display-Reset durch, um Fullscreen zurückzuholen.")
-                                pygame.time.wait(200) 
+                            # --- OS-Workaround: Fenster-Fokus (Linux) ---
+                            # Nach Beendigung eines Kindprozesses verliert Pygame unter bestimmten Linux-Window-Managern
+                            # den Fokus. Ein Re-Init des Displays erzwingt den Fokus zurück zum Launcher.
+                            if aktuelles_os == "Linux":
+                                logging.info("Linux: Führe Display-Reset durch, um Fokus zurückzuholen.")
+                                pygame.time.wait(200) # Kurze Verzögerung, um dem OS das Schließen des Spiel-Fensters zu ermöglichen.
                                 pygame.display.quit()
                                 pygame.display.init()
                                 pygame.mouse.set_visible(False)
-                                screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                                real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                            elif aktuelles_os == "Darwin":
+                                real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                                 
                             pygame.event.clear()
 
@@ -257,7 +234,7 @@ while running:
             elif event.key == pygame.K_ESCAPE: 
                 running = False
 
-    # --- Logik Updates ---
+    # --- Aktualisierung der Spiel- und Animationslogik ---
     for star in stars:
         star[1] += star[2]
         if star[1] > sh:
@@ -270,7 +247,7 @@ while running:
     anim_toggle_fast = (frame_counter // 15) % 2 == 0
     anim_toggle_slow = (frame_counter // 25) % 2 == 0
 
-    # --- Renderschleife ---
+    # --- Rendern der Szene (Virtuelle Surface) ---
     screen.fill(BG_COLOR)
     screen.blit(bloom_grid_surf, (0, 0))
 
@@ -342,9 +319,9 @@ while running:
             
             if sel:
                 for off in [2, -2]:
-                    shadow_surf = menu_font.render(txt, True, (200, 200, 0))
-                    shadow_surf.set_alpha(150)
-                    screen.blit(shadow_surf, m_rect.move(off, off))
+                        # Mac-Fix: Auf set_alpha() verzichten und stattdessen eine dunklere Farbe nutzen
+                        shadow_surf = menu_font.render(txt, True, (100, 100, 0))
+                        screen.blit(shadow_surf, m_rect.move(off, off))
                     
                 screen.blit(menu_font.render(txt, True, NEON_YELLOW), m_rect)
                 
@@ -381,6 +358,25 @@ while running:
         screen.blit(e_surf, (int(sw//2 - e_surf.get_width()//2), int(sh*0.82)))
 
     draw_scanlines(frame_counter)
+
+    # --- Finales Rendering: Letterboxing & Skalierung ---
+    # Maximalen Skalierungsfaktor zur Beibehaltung des 16:9-Seitenverhältnisses berechnen.
+    scale_factor = min(REAL_W / sw, REAL_H / sh)
+    new_w = int(sw * scale_factor)
+    new_h = int(sh * scale_factor)
+    
+    # Virtuelle Surface auf die ermittelte Zielgröße transformieren.
+    scaled_screen = pygame.transform.scale(screen, (new_w, new_h))
+    
+    # Offsets für eine zentrierte Platzierung (Pillarboxing/Letterboxing) berechnen.
+    x_offset = (REAL_W - new_w) // 2
+    y_offset = (REAL_H - new_h) // 2
+    
+    # Physischen Bildschirm leeren und die skalierte Surface zentriert zeichnen.
+    real_screen.fill((0, 0, 0))
+    real_screen.blit(scaled_screen, (x_offset, y_offset))
+
+    # Double-Buffering anwenden (Frame auf dem Display ausgeben).
     pygame.display.flip()
     clock.tick(60)
 

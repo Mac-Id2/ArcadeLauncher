@@ -1,41 +1,41 @@
 # DIGITS ARCADE - Retro Game Launcher
 
-Ein im Retro-Stil gehaltener, plattformübergreifender Game Launcher, geschrieben in Python mit Pygame. Der Launcher bietet dynamische Hintergrundeffekte (Sterne, Scanlines, animiertes Raumschiff), Pixel-Art-Animationen und startet Spiele nahtlos in Windows, macOS und Linux.
+Ein plattformübergreifender Game Launcher im Retro-Design, entwickelt in Python mittels Pygame. Die Applikation bietet hardwarebeschleunigte visuelle Effekte (Sterne, Scanlines, prozedurale Sprite-Animationen) und ermöglicht die nahtlose Ausführung externer Spiel-Binärdateien unter Windows, macOS und Linux.
 
-## 🛠 Voraussetzungen
+## 🛠 Systemanforderungen
 
-Um den Launcher auszuführen oder selbst zu kompilieren, benötigst du:
+Um die Applikation quelloffen auszuführen oder einen Build zu generieren, werden folgende Komponenten vorausgesetzt:
 - Python 3.x
 - Pygame (`pip install pygame`)
 
-## 📂 Ordnerstruktur
+## 📂 Architektur und Verzeichnisstruktur
 
-Damit der Launcher alle Grafiken und Spiele findet, muss die Ordnerstruktur nach dem Download (bzw. dem Build) wie folgt aussehen:
+Für eine korrekte Pfadauflösung zur Laufzeit (sowohl im Quellcode als auch als kompilierter Build) ist die Einhaltung der folgenden Verzeichnishierarchie zwingend erforderlich:
 
 ```text
 /DeinSpieleVerzeichnis
 │
-├── launcher/                   #  Launcher-Ordner
-│   ├── launcher.exe            # (Windows) oder "launcher" (Mac/Linux)
-│   ├── _internal/              # (Systemdateien von PyInstaller für den Launcher)
-│   ├── games.json              # Konfigurationsdatei für die Spiele
+├── launcher/                   # Root-Verzeichnis der Launcher-Applikation
+│   ├── launcher.exe            # Executable (Windows) bzw. Binary "launcher" (macOS/Linux)
+│   ├── _internal/              # Systembibliotheken (wird bei PyInstaller-Builds generiert)
+│   ├── games.json              # Applikationskonfiguration und Spielpfade
 │   │
-│   └── assets/                 # Ordner für Launcher-Grafiken und Schriften
+│   └── assets/                 # Verzeichnis für statische Applikationsressourcen
 │       ├── arcade.ttf
 │       ├── player-idle.png
 │       └── ... 
 │
-└── spiele/                     # Ordner für die eigentlichen Spiele
+└── spiele/                     # Root-Verzeichnis der zu startenden Applikationen
     │
-    ├── Space-Invaders/         # Ein komplett kompiliertes Spiel
+    ├── Space-Invaders/         # Applikationsverzeichnis (Spiel 1)
     │   ├── game.exe            # Windows Executable
-    │   ├── game                # Mac / Linux Executable (ohne Endung)
-    │   ├── _internal/          # (Systemdateien von PyInstaller für das Spiel)
-    │   └── assets/             # (Grafiken/Sounds für das Spiel selbst)
+    │   ├── game                # macOS / Linux Executable
+    │   ├── _internal/          # Spielspezifische Bibliotheken
+    │   └── assets/             # Spielspezifische Ressourcen
     │
-    └── Pac-Man/
+    └── Pac-Man/                # Applikationsverzeichnis (Spiel 2)
         ├── game.exe            # Windows
-        ├── game.app            # Mac
+        ├── game.app            # macOS (App-Bundle)
         ├── game.x86_64         # Linux
         ├── _internal/          
         └── assets/
