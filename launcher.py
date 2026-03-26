@@ -168,13 +168,13 @@ while running:
                     running = False
                 continue
             
-            if event.key == pygame.K_UP: 
+            if event.key == pygame.K_w: 
                 selected_index = (selected_index - 1) % len(games)
-            elif event.key == pygame.K_DOWN: 
+            elif event.key == pygame.K_a: 
                 selected_index = (selected_index + 1) % len(games)
             
             # --- SPIEL STARTEN ---
-            elif event.key == pygame.K_RETURN:
+            elif event.key == pygame.K_SPACE:
                 game = games[selected_index]
                 game_name = game.get("display_name", "Unbekanntes Spiel")
                 p_dict = game.get("paths", {})
