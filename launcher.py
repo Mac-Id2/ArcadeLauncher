@@ -131,7 +131,7 @@ while running:
             
             if event.key == pygame.K_w: 
                 selected_index = (selected_index - 1) % len(games)
-            elif event.key == pygame.K_a: 
+            elif event.key == pygame.K_s: 
                 selected_index = (selected_index + 1) % len(games)
             
             # --- SPIEL STARTEN ---
