@@ -18,6 +18,7 @@ import time
 
 from config import *
 from assets import init_sprites
+from led_bridge import get_bridge
 
 # --- Initialisierung: Pygame & Display ---
 pygame.init()
@@ -34,6 +35,10 @@ screen = pygame.Surface((sw, sh)) # Sämtliche Zeichenoperationen erfolgen auf d
 clock = pygame.time.Clock()
 
 logging.info(f"System-Info: {platform.system()} | Echter Monitor: {REAL_W}x{REAL_H} | Virtuell: {sw}x{sh}")
+
+# --- LED Bridge starten (Hintergrund-Thread) ----------------------------------
+led = get_bridge()
+led.start()
 
 # --- Laden der Assets & Typografie ---
 try:
@@ -107,10 +112,15 @@ except: pass
 
 # --- Hauptschleife (Main Loop) Setup ---
 selected_index = 0
+prev_selected_index = -1   # LED: Selektionsänderung erkennen
 error_message = ""
 frame_counter = 0
 running_pac_x = -200
 running = True
+
+# Initiale LED-Selektion setzen sobald Spiele geladen sind
+if games:
+    led.notify_selection_changed(games[0].get("display_name", ""))
 
 while running:
     frame_counter += 1
@@ -129,11 +139,16 @@ while running:
                     running = False
                 continue
             
-            if event.key == pygame.K_w: 
+            if event.key == pygame.K_w:
                 selected_index = (selected_index - 1) % len(games)
-            elif event.key == pygame.K_s: 
+            elif event.key == pygame.K_s:
                 selected_index = (selected_index + 1) % len(games)
-            
+
+            # --- LED: Selektion geändert? ---
+            if event.key in (pygame.K_w, pygame.K_s) and selected_index != prev_selected_index:
+                prev_selected_index = selected_index
+                led.notify_selection_changed(games[selected_index].get("display_name", ""))
+
             # --- SPIEL STARTEN ---
             elif event.key == pygame.K_SPACE:
                 game = games[selected_index]
@@ -190,23 +205,29 @@ while running:
                             pygame.display.flip()
                             
                             if aktuelles_os == "Darwin": pygame.display.iconify()
-                            
+
+                            # --- LED: Spiel-Start-Effekt ---
+                            led.notify_game_start(game_name)
+
                             # --- SPIEL STARTEN ---
                             if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
                                 process = subprocess.Popen(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
                             else:
                                 process = subprocess.Popen([exe_p], cwd=game_dir, env=clean_env)
-                            
+
                             logging.info(f"Spiel läuft im Vordergrund.")
-                            
+
                             # Blockierende Überwachungsschleife: Prüft periodisch den Prozessstatus
                             while True:
                                 if process.poll() is not None:
                                     # Spielprozess wurde regulär beendet.
                                     logging.info(f"Erfolgreich beendet: {game_name}")
                                     break
-                                
+
                                 pygame.time.wait(1000) # Polling-Intervall von 1 Sekunde zur Reduzierung der CPU-Last.
+
+                            # --- LED: Spiel beendet → Attract-Mode ---
+                            led.notify_game_stop()
 
                             # --- OS-Workaround: Fenster-Fokus (Linux) ---
                             # Nach Beendigung eines Kindprozesses verliert Pygame unter bestimmten Linux-Window-Managern
@@ -381,5 +402,6 @@ while running:
     clock.tick(60)
 
 logging.info("=== LAUNCHER WIRD BEENDET ===")
+led.notify_launcher_exit()   # Power-Down-Animation → alle LEDs aus
 pygame.quit()
 sys.exit()

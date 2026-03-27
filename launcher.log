@@ -2,3 +2,46 @@
 2026-03-26 15:11:49 | INFO | 3 Spiele erfolgreich aus games.json geladen.
 2026-03-26 15:11:50 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
 2026-03-26 15:11:59 | INFO | === LAUNCHER WIRD BEENDET ===
+2026-03-27 12:57:46 | INFO | === LAUNCHER GESTARTET ===
+2026-03-27 12:57:46 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-03-27 12:57:46 | INFO | System-Info: Windows | Echter Monitor: 1920x1080 | Virtuell: 1280x720
+2026-03-27 12:59:48 | INFO | Start-Versuch: ASTEROIDS auf OS: Windows
+2026-03-27 12:59:49 | INFO | Start-Versuch: ASTEROIDS auf OS: Windows
+2026-03-27 12:59:49 | INFO | Start-Versuch: ASTEROIDS auf OS: Windows
+2026-03-27 12:59:49 | INFO | Start-Versuch: ASTEROIDS auf OS: Windows
+2026-03-27 12:59:50 | INFO | Start-Versuch: ASTEROIDS auf OS: Windows
+2026-03-27 12:59:50 | INFO | Start-Versuch: ASTEROIDS auf OS: Windows
+2026-03-27 13:00:13 | INFO | === LAUNCHER WIRD BEENDET ===
+2026-03-27 13:11:38 | INFO | === LAUNCHER GESTARTET ===
+2026-03-27 13:11:38 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-03-27 13:11:39 | INFO | System-Info: Windows | Echter Monitor: 1920x1080 | Virtuell: 1280x720
+2026-03-27 13:11:39 | INFO | LEDBridge: Verbunden mit ws://localhost:8765
+2026-03-27 13:11:39 | INFO | LEDBridge: Client gestartet \u2192 ws://localhost:8765
+2026-03-27 13:11:50 | INFO | === LAUNCHER WIRD BEENDET ===
+2026-03-27 13:11:50 | INFO | LEDBridge: gestoppt.
+2026-03-27 13:34:09 | INFO | === LAUNCHER GESTARTET ===
+2026-03-27 13:34:09 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-03-27 13:34:09 | INFO | System-Info: Windows | Echter Monitor: 1920x1080 | Virtuell: 1280x720
+2026-03-27 13:34:09 | INFO | LEDBridge: Verbunden mit ws://localhost:8765
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | monitor_right    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | monitor_bottom   | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | monitor_left     | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | monitor_top      | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | control_panel    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:34:09 | INFO | LED [B]  | rainbow | side_left        | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 13:34:09 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 13:34:09 | INFO | LED [B]  | rainbow | side_right       | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 13:34:09 | INFO | LEDBridge: Client gestartet \u2192 ws://localhost:8765
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | wipe    | control_panel    | rgb(255,255,  0) | speed=35  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | fill    | monitor_right    | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | fill    | monitor_bottom   | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | fill    | monitor_left     | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | fill    | monitor_top      | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:34:09 | INFO | LED [B]  | chase   | side_left        | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 13:34:09 | INFO | LED [B]  | chase   | side_right       | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 13:34:09 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=15  repeat=0
+2026-03-27 13:41:09 | INFO | === LAUNCHER WIRD BEENDET ===
+2026-03-27 13:41:09 | INFO | LED: Launcher-Exit — Power-Down-Animation...
+2026-03-27 13:41:10 | INFO | LEDBridge: gestoppt.
