@@ -45,3 +45,84 @@
 2026-03-27 13:41:09 | INFO | === LAUNCHER WIRD BEENDET ===
 2026-03-27 13:41:09 | INFO | LED: Launcher-Exit — Power-Down-Animation...
 2026-03-27 13:41:10 | INFO | LEDBridge: gestoppt.
+2026-03-27 13:53:01 | INFO | === LAUNCHER GESTARTET ===
+2026-03-27 13:53:01 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-03-27 13:53:01 | INFO | System-Info: Windows | Echter Monitor: 1920x1080 | Virtuell: 1280x720
+2026-03-27 13:53:01 | INFO | LEDBridge: Verbunden mit ws://localhost:8765
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | monitor_right    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:53:01 | INFO | LEDBridge: Client gestartet \u2192 ws://localhost:8765
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | monitor_bottom   | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | monitor_left     | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | monitor_top      | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | control_panel    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:53:01 | INFO | LED [B]  | rainbow | side_left        | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 13:53:01 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 13:53:01 | INFO | LED [B]  | rainbow | side_right       | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | wipe    | control_panel    | rgb(255,255,  0) | speed=35  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | fill    | monitor_right    | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | fill    | monitor_bottom   | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | fill    | monitor_left     | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | fill    | monitor_top      | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:53:01 | INFO | LED [B]  | chase   | side_left        | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 13:53:01 | INFO | LED [B]  | chase   | side_right       | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 13:53:01 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=15  repeat=0
+2026-03-27 13:53:03 | INFO | === LAUNCHER WIRD BEENDET ===
+2026-03-27 13:53:03 | INFO | LED: Launcher-Exit — Power-Down-Animation...
+2026-03-27 13:53:04 | INFO | LEDBridge: gestoppt.
+2026-03-27 14:22:54 | INFO | === LAUNCHER GESTARTET ===
+2026-03-27 14:22:54 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-03-27 14:22:55 | INFO | System-Info: Windows | Echter Monitor: 1920x1080 | Virtuell: 1280x720
+2026-03-27 14:22:55 | INFO | LEDBridge: Verbunden mit ws://localhost:8765
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | monitor_right    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | monitor_bottom   | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | monitor_left     | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 14:22:55 | INFO | LEDBridge: Client gestartet \u2192 ws://localhost:8765
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | monitor_top      | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | control_panel    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 14:22:55 | INFO | LED [B]  | rainbow | side_left        | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 14:22:55 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 14:22:55 | INFO | LED [B]  | rainbow | side_right       | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | wipe    | control_panel    | rgb(255,255,  0) | speed=35  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | fill    | monitor_right    | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | fill    | monitor_bottom   | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | fill    | monitor_left     | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | fill    | monitor_top      | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 14:22:55 | INFO | LED [B]  | chase   | side_left        | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 14:22:55 | INFO | LED [B]  | chase   | side_right       | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 14:22:55 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=15  repeat=0
+2026-03-27 15:19:04 | INFO | === LAUNCHER GESTARTET ===
+2026-03-27 15:19:04 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-03-27 15:19:05 | INFO | System-Info: Windows | Echter Monitor: 1920x1080 | Virtuell: 1280x720
+2026-03-27 15:19:05 | INFO | LED: ESP32 gefunden auf COM3 (Silicon Labs CP210x USB to UART Bridge (COM3))
+2026-03-27 15:19:05 | INFO | LED: Serial verbunden \u2192 COM3 @ 115200 Baud
+2026-03-27 15:19:05 | INFO | server listening on [::1]:8765
+2026-03-27 15:19:05 | INFO | server listening on 127.0.0.1:8765
+2026-03-27 15:19:05 | INFO | LED-WS: Server bereit auf ws://localhost:8765
+2026-03-27 15:19:05 | INFO | ESP32 bereit — v1.0.0 | Kette A: 186 LEDs | Kette B: 186 LEDs
+2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | monitor_right    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 15:19:05 | INFO | LEDBridge: gestartet | Serial: COM3 | WS: ws://localhost:8765
+2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | monitor_bottom   | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | monitor_left     | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | monitor_top      | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 15:19:05 | INFO | LED [B]  | rainbow | side_left        | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | wipe    | control_panel    | rgb(255,255,  0) | speed=35  repeat=0
+2026-03-27 15:19:05 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | fill    | monitor_right    | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 15:19:05 | INFO | LED [B]  | rainbow | side_right       | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | fill    | monitor_bottom   | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | fill    | monitor_left     | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | fill    | monitor_top      | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 15:19:05 | INFO | LED [B]  | chase   | side_left        | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 15:19:05 | INFO | LED [B]  | chase   | side_right       | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 15:19:05 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=15  repeat=0
+2026-03-27 15:19:17 | INFO | === LAUNCHER WIRD BEENDET ===
+2026-03-27 15:19:17 | INFO | LED: Launcher-Exit — Power-Down-Animation...
+2026-03-27 15:19:17 | INFO | server closing
+2026-03-27 15:19:17 | INFO | server closed
+2026-03-27 15:19:18 | INFO | LEDBridge: gestoppt.
