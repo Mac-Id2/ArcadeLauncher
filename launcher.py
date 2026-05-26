@@ -228,18 +228,13 @@ while running:
                                     # Spielprozess wurde regulär beendet.
                                     logging.info(f"Erfolgreich beendet: {game_name}")
                                     break
-
-                                pygame.time.wait(1000) # Polling-Intervall von 1 Sekunde zur Reduzierung der CPU-Last.
-
-                            # --- LED: Spiel beendet → Attract-Mode ---
-                            led.notify_game_stop()
-
-                            # --- OS-Workaround: Fenster-Fokus ---
-                            if aktuelles_os == "Darwin":
-                                real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-                            
-                            pygame.event.pump() 
-                            pygame.event.clear()
+                                    
+                                # WICHTIG: Sagt dem OS, dass das Fenster noch "lebt", und leert angestaute Events (verhindert das Einfrieren)
+                                pygame.event.pump()
+                                pygame.event.clear()
+                                
+                                # 100ms warten (10 Mal pro Sekunde prüfen) ist flüssiger für das OS als volle 1000ms
+                                pygame.time.wait(100)
 
                         except Exception as e:
                             logging.error(f"UNERWARTETER FEHLER beim Start von {game_name}: {e}")
