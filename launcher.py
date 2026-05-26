@@ -25,7 +25,7 @@ pygame.init()
 pygame.mouse.set_visible(False)
 
 # 1. Physische Bildschirmauflösung ermitteln (Fullscreen)
-real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+real_screen = pygame.display.set_mode((0, 0), pygame.NOFRAME)
 REAL_W, REAL_H = real_screen.get_size()
 
 # 2. Virtuelle Zeichenfläche (16:9 Basis-Auflösung) für konsistentes UI-Rendering initialisieren
@@ -230,21 +230,16 @@ while running:
                             led.notify_game_stop()
 
                             # --- OS-Workaround: Fenster-Fokus ---
-                            if aktuelles_os == "Linux":
-                                logging.info("Linux: Stelle Fensterfokus sanft wieder her.")
-                                pygame.time.wait(200) # Kurze Pause für das OS
-                                
-                                # Wir erneuern nur den Fullscreen-Modus und pumpen die Events, 
-                                # OHNE display.quit() oder init() aufzurufen.
+                            if aktuelles_os == "Darwin":
+                                # Mac braucht diesen Reset weiterhin
                                 real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-                                pygame.mouse.set_visible(False)
-                                pygame.event.pump() 
-                                
-                            elif aktuelles_os == "Darwin":
-                                # Original-Code für Mac bleibt absolut unberührt!
-                                real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-                                
-                            # Event-Queue leeren bleibt für alle OS wichtig
+                            
+                            # HINWEIS: Für Linux machen wir hier display-technisch GAR NICHTS!
+                            # Wir rufen kein set_mode auf, damit GNOME nicht die "Window is ready"-Sperre auslöst.
+                            # Das OS gibt dem Fenster automatisch den Fokus zurück, da es einfach offen blieb.
+
+                            # WICHTIG: Event-Queue leeren für alle OS
+                            pygame.event.pump() 
                             pygame.event.clear()
 
                         except Exception as e:
