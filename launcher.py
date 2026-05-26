@@ -29,8 +29,8 @@ os.environ['SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS'] = '0'
 pygame.init()
 pygame.mouse.set_visible(False)
 
-# 1. Physische Bildschirmauflösung ermitteln (Fullscreen)
-real_screen = pygame.display.set_mode((0, 0), pygame.NOFRAME)
+# 1. Physische Bildschirmauflösung ermitteln (Fullscreen für ALLE Systeme)
+real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 REAL_W, REAL_H = real_screen.get_size()
 
 # 2. Virtuelle Zeichenfläche (16:9 Basis-Auflösung) für konsistentes UI-Rendering initialisieren
