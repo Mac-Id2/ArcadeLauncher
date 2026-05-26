@@ -20,6 +20,11 @@ from config import *
 from assets import init_sprites
 from led_bridge import get_bridge
 
+# --- SDL2 Fix für Linux (Fokus-Verlust) ---
+# Zwingt Pygame dazu, sich NICHT in den Hintergrund zu minimieren, 
+# wenn das Spiel startet und den Fokus klaut.
+os.environ['SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS'] = '0'
+
 # --- Initialisierung: Pygame & Display ---
 pygame.init()
 pygame.mouse.set_visible(False)
@@ -231,14 +236,8 @@ while running:
 
                             # --- OS-Workaround: Fenster-Fokus ---
                             if aktuelles_os == "Darwin":
-                                # Mac braucht diesen Reset weiterhin
                                 real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                             
-                            # HINWEIS: Für Linux machen wir hier display-technisch GAR NICHTS!
-                            # Wir rufen kein set_mode auf, damit GNOME nicht die "Window is ready"-Sperre auslöst.
-                            # Das OS gibt dem Fenster automatisch den Fokus zurück, da es einfach offen blieb.
-
-                            # WICHTIG: Event-Queue leeren für alle OS
                             pygame.event.pump() 
                             pygame.event.clear()
 
