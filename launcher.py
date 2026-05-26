@@ -204,8 +204,7 @@ while running:
                             real_screen.blit(temp_scaled, ((REAL_W - temp_scaled.get_width()) // 2, (REAL_H - temp_scaled.get_height()) // 2))
                             pygame.display.flip()
                             
-                            if aktuelles_os in ["Darwin", "Linux"]: 
-                                pygame.display.iconify()
+                            if aktuelles_os == "Darwin": pygame.display.iconify()
 
                             # --- LED: Spiel-Start-Effekt ---
                             led.notify_game_start(game_name)
@@ -230,23 +229,22 @@ while running:
                             # --- LED: Spiel beendet → Attract-Mode ---
                             led.notify_game_stop()
 
-                            # --- OS-Workaround: Fenster-Fokus (Linux & macOS) ---
-                            if aktuelles_os in ["Linux", "Darwin"]:
-                                logging.info(f"{aktuelles_os}: Stelle Fensterfokus sanft wieder her.")
-                                pygame.time.wait(200)
+                            # --- OS-Workaround: Fenster-Fokus ---
+                            if aktuelles_os == "Linux":
+                                logging.info("Linux: Stelle Fensterfokus sanft wieder her.")
+                                pygame.time.wait(200) # Kurze Pause für das OS
                                 
-                                if aktuelles_os == "Linux":
-                                    # Unter Linux kurz den Fullscreen-Modus verlassen und direkt wieder aktivieren.
-                                    # Das zwingt X11/Wayland dazu, das Fenster wieder in den Vordergrund zu holen,
-                                    # OHNE das Display-System abzustürzen (verhindert das Desktop-Flackern).
-                                    pygame.display.set_mode((800, 600)) 
-                                
+                                # Wir erneuern nur den Fullscreen-Modus und pumpen die Events, 
+                                # OHNE display.quit() oder init() aufzurufen.
                                 real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                                 pygame.mouse.set_visible(False)
+                                pygame.event.pump() 
                                 
-                                # Wichtig für Linux: Zwingt Pygame, mit dem OS Window-Manager zu kommunizieren
-                                pygame.event.pump()
+                            elif aktuelles_os == "Darwin":
+                                # Original-Code für Mac bleibt absolut unberührt!
+                                real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                                 
+                            # Event-Queue leeren bleibt für alle OS wichtig
                             pygame.event.clear()
 
                         except Exception as e:
