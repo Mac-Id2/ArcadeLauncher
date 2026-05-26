@@ -204,7 +204,8 @@ while running:
                             real_screen.blit(temp_scaled, ((REAL_W - temp_scaled.get_width()) // 2, (REAL_H - temp_scaled.get_height()) // 2))
                             pygame.display.flip()
                             
-                            if aktuelles_os == "Darwin": pygame.display.iconify()
+                            if aktuelles_os in ["Darwin", "Linux"]: 
+                                pygame.display.iconify()
 
                             # --- LED: Spiel-Start-Effekt ---
                             led.notify_game_start(game_name)
@@ -229,18 +230,22 @@ while running:
                             # --- LED: Spiel beendet → Attract-Mode ---
                             led.notify_game_stop()
 
-                            # --- OS-Workaround: Fenster-Fokus (Linux) ---
-                            # Nach Beendigung eines Kindprozesses verliert Pygame unter bestimmten Linux-Window-Managern
-                            # den Fokus. Ein Re-Init des Displays erzwingt den Fokus zurück zum Launcher.
-                            if aktuelles_os == "Linux":
-                                logging.info("Linux: Führe Display-Reset durch, um Fokus zurückzuholen.")
-                                pygame.time.wait(200) # Kurze Verzögerung, um dem OS das Schließen des Spiel-Fensters zu ermöglichen.
-                                pygame.display.quit()
-                                pygame.display.init()
+                            # --- OS-Workaround: Fenster-Fokus (Linux & macOS) ---
+                            if aktuelles_os in ["Linux", "Darwin"]:
+                                logging.info(f"{aktuelles_os}: Stelle Fensterfokus sanft wieder her.")
+                                pygame.time.wait(200)
+                                
+                                if aktuelles_os == "Linux":
+                                    # Unter Linux kurz den Fullscreen-Modus verlassen und direkt wieder aktivieren.
+                                    # Das zwingt X11/Wayland dazu, das Fenster wieder in den Vordergrund zu holen,
+                                    # OHNE das Display-System abzustürzen (verhindert das Desktop-Flackern).
+                                    pygame.display.set_mode((800, 600)) 
+                                
+                                real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                                 pygame.mouse.set_visible(False)
-                                real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-                            elif aktuelles_os == "Darwin":
-                                real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                                
+                                # Wichtig für Linux: Zwingt Pygame, mit dem OS Window-Manager zu kommunizieren
+                                pygame.event.pump()
                                 
                             pygame.event.clear()
 
