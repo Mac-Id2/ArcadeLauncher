@@ -136,7 +136,7 @@ class LEDBridge:
         self._attract_event   = threading.Event()
 
         # ── Launcher-Lock + Keepalive ─────────────────────────────────────────
-        self._launcher_locked     = False
+        self._launcher_locked     = True
         self._locked_effects: List[dict] = []
         self._locked_effects_lock = threading.Lock()
         self._locked_recording    = False
@@ -543,9 +543,6 @@ class LEDBridge:
 
         if command != "effect":
             return
-
-        # Spiel-Effekt direkt an ESP32 weiterleiten
-        self._write_serial(data)
 
         # Spiel-Effekt direkt an ESP32 weiterleiten
         self._write_serial(data)
