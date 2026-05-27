@@ -46,11 +46,11 @@ jobs:
           # auf dem ARM-Server (macos-latest).
           if [ "${{ matrix.artifact_name }}" = "macos-x64" ]; then
             arch -x86_64 python -m pip install --upgrade pip
-            arch -x86_64 pip install "setuptools==68.2.2" pygame pynput pyinstaller
+            arch -x86_64 pip install "setuptools==68.2.2" pygame pynput websockets pyserial pyinstaller
           else
             # Standard-Installation für Windows, Linux und macOS ARM
             python -m pip install --upgrade pip
-            pip install "setuptools==68.2.2" pygame pynput pyinstaller
+            pip install "setuptools==68.2.2" pygame pynput websockets pyserial pyinstaller
           fi
 
       - name: PyInstaller Build-Prozess
