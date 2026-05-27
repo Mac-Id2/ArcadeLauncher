@@ -1,10 +1,4 @@
-"""
-launcher.py
 
-Haupteinstiegspunkt des Arcade-Launchers.
-Implementiert das Hauptmenü, die dynamische UI-Skalierung (Letterboxing)
-sowie OS-spezifische Workarounds zum Starten der Spiele.
-"""
 
 import pygame
 import subprocess
@@ -15,6 +9,7 @@ import math
 import random
 import logging
 import time
+from LedController import LedController
 
 from config import *
 from assets import init_sprites
@@ -38,6 +33,10 @@ sw, sh = 1280, 720
 screen = pygame.Surface((sw, sh)) # Sämtliche Zeichenoperationen erfolgen auf dieser virtuellen Surface.
 
 clock = pygame.time.Clock()
+
+# --- LED Controller Initialisierung & Aktivierung ---
+led = LedController()
+led.attract_resume() # Ruhezustand/Ambient-Licht beim Starten des Launchers aktivieren
 
 logging.info(f"System-Info: {platform.system()} | Echter Monitor: {REAL_W}x{REAL_H} | Virtuell: {sw}x{sh}")
 
@@ -144,17 +143,15 @@ while running:
                     running = False
                 continue
             
-            if event.key == pygame.K_w:
+            # Navigation mit LED-Feedback (Kurzer Cyan-Blink)
+            if event.key == pygame.K_w: 
                 selected_index = (selected_index - 1) % len(games)
-            elif event.key == pygame.K_s:
+                led.send_effect(chain="A", effect_type="blink", segment=99, r=0, g=230, b=255, speed=80, repeat=1, priority=2, event_key="menu_scroll")
+            elif event.key == pygame.K_s: 
                 selected_index = (selected_index + 1) % len(games)
-
-            # --- LED: Selektion geändert? ---
-            if event.key in (pygame.K_w, pygame.K_s) and selected_index != prev_selected_index:
-                prev_selected_index = selected_index
-                led.notify_selection_changed(games[selected_index].get("display_name", ""))
-
-            # --- SPIEL STARTEN ---
+                led.send_effect(chain="A", effect_type="blink", segment=99, r=0, g=230, b=255, speed=80, repeat=1, priority=2, event_key="menu_scroll")
+            
+            # --- ECHTEN SPIELSTART TRIGGERN ---
             elif event.key == pygame.K_SPACE:
                 game = games[selected_index]
                 game_name = game.get("display_name", "Unbekanntes Spiel")
@@ -168,26 +165,30 @@ while running:
                     if os.path.exists(exe_p):
                         try:
                             game_dir = os.path.dirname(exe_p)
+
+                            # LED-Startsequenz zünden & Ambient-Modus pausieren
+                            led.attract_pause()
+                            game_identifier = game_name.upper()
+                            if "SPACE" in game_identifier:
+                                led.effect_start_space_invaders()  # Grüner Matrix-Wipe
+                            elif "ASTEROID" in game_identifier:
+                                led.effect_start_asteroids()       # Weißer, kühler Puls
+                            else:
+                                led.effect_start_pacman()          # Gelber Chase/Lauflicht-Effekt
                             
-                            # --- 1. BULLETPROOF PYINSTALLER INCEPTION FIX ---
+                            # --- 1. PYINSTALLER ENVIRONMENT CLEANUP ---
                             clean_env = os.environ.copy()
-                            
-                            # Alle bekannten Stör-Variablen entfernen
                             vars_to_remove = [
                                 'LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONHOME', 'PYTHONPATH', 
                                 '_MEIPASS', '_MEIPASS2'
                             ]
-                            
-                            # Auch alle versteckten PyInstaller-internen Variablen (_PYI_...) gnadenlos löschen
                             for k in list(clean_env.keys()):
                                 if k.startswith('_PYI_') or k in vars_to_remove:
                                     clean_env.pop(k, None)
                                 
-                            # WINDOWS PATH FILTER (Case-Insensitive und sicher)
                             if hasattr(sys, '_MEIPASS'):
                                 mei_path = os.path.normcase(sys._MEIPASS) 
                                 current_path = clean_env.get('PATH', '')
-                                
                                 clean_paths = [
                                     p for p in current_path.split(os.pathsep) 
                                     if mei_path not in os.path.normcase(p)
@@ -198,7 +199,7 @@ while running:
                                 try: os.chmod(exe_p, os.stat(exe_p).st_mode | 0o111)
                                 except Exception as e: logging.warning(f"Konnte chmod nicht setzen: {e}")
 
-                            # --- 2. LADEBILDSCHIRM SICHTBAR MACHEN ---
+                            # --- 2. LADEBILDSCHIRM ANZEIGEN ---
                             screen.fill(BG_COLOR)
                             l_txt = title_font.render("LOADING...", True, NEON_CYAN)
                             screen.blit(l_txt, l_txt.get_rect(center=(sw//2, sh//2)))
@@ -210,6 +211,8 @@ while running:
                             pygame.display.flip()
                             
                             if aktuelles_os == "Darwin": pygame.display.iconify()
+                            
+                            # --- 3. PROZESS STARTEN ---
 
                             # --- LED: Spiel-Start-Effekt ---
                             led.notify_game_start(game_name)
@@ -221,24 +224,42 @@ while running:
                                 process = subprocess.Popen([exe_p], cwd=game_dir, env=clean_env)
 
                             logging.info(f"Spiel läuft im Vordergrund.")
+                            
+                            # Blockierende Überwachungsschleife: Wartet, bis das Spiel geschlossen wird
 
                             # Blockierende Überwachungsschleife: Prüft periodisch den Prozessstatus
                             while True:
                                 if process.poll() is not None:
-                                    # Spielprozess wurde regulär beendet.
                                     logging.info(f"Erfolgreich beendet: {game_name}")
+                                    
+                                    # LED-Beendigungssequenz zünden & Ambient wieder anwerfen
+                                    led.effect_game_ended()  # Roter Wipe
+                                    led.attract_resume()     # Reaktiviert das Ambient-Menü-Licht
                                     break
                                     
                                 # WICHTIG: Sagt dem OS, dass das Fenster noch "lebt", und leert angestaute Events (verhindert das Einfrieren)
                                 pygame.event.pump()
                                 pygame.event.clear()
                                 
-                                # 100ms warten (10 Mal pro Sekunde prüfen) ist flüssiger für das OS als volle 1000ms
-                                pygame.time.wait(100)
+                                pygame.time.wait(1000) # Polling-Intervall (1 Sekunde)
+
+                            # --- OS-Workaround: Fenster-Fokus (Linux & Mac) ---
+                            if aktuelles_os == "Linux":
+                                logging.info("Linux: Führe Display-Reset durch, um Fokus zurückzuholen.")
+                                pygame.time.wait(200)
+                                pygame.display.quit()
+                                pygame.display.init()
+                                pygame.mouse.set_visible(False)
+                                real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                            elif aktuelles_os == "Darwin":
+                                real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                                
+                            pygame.event.clear()
 
                         except Exception as e:
                             logging.error(f"UNERWARTETER FEHLER beim Start von {game_name}: {e}")
                             error_message = f"ERROR: {str(e)[:25]}"
+                            led.attract_resume() # Notfall-Fallback, damit LEDs nicht aus bleiben
                     else:
                         error_message = "EXECUTABLE NOT FOUND"
                 else:
@@ -332,9 +353,8 @@ while running:
             
             if sel:
                 for off in [2, -2]:
-                        # Mac-Fix: Auf set_alpha() verzichten und stattdessen eine dunklere Farbe nutzen
-                        shadow_surf = menu_font.render(txt, True, (100, 100, 0))
-                        screen.blit(shadow_surf, m_rect.move(off, off))
+                    shadow_surf = menu_font.render(txt, True, (100, 100, 0))
+                    screen.blit(shadow_surf, m_rect.move(off, off))
                     
                 screen.blit(menu_font.render(txt, True, NEON_YELLOW), m_rect)
                 
@@ -373,23 +393,17 @@ while running:
     draw_scanlines(frame_counter)
 
     # --- Finales Rendering: Letterboxing & Skalierung ---
-    # Maximalen Skalierungsfaktor zur Beibehaltung des 16:9-Seitenverhältnisses berechnen.
     scale_factor = min(REAL_W / sw, REAL_H / sh)
     new_w = int(sw * scale_factor)
     new_h = int(sh * scale_factor)
     
-    # Virtuelle Surface auf die ermittelte Zielgröße transformieren.
     scaled_screen = pygame.transform.scale(screen, (new_w, new_h))
-    
-    # Offsets für eine zentrierte Platzierung (Pillarboxing/Letterboxing) berechnen.
     x_offset = (REAL_W - new_w) // 2
     y_offset = (REAL_H - new_h) // 2
     
-    # Physischen Bildschirm leeren und die skalierte Surface zentriert zeichnen.
     real_screen.fill((0, 0, 0))
     real_screen.blit(scaled_screen, (x_offset, y_offset))
 
-    # Double-Buffering anwenden (Frame auf dem Display ausgeben).
     pygame.display.flip()
     clock.tick(60)
 

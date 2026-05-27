@@ -43,7 +43,7 @@
 2026-03-27 13:34:09 | INFO | LED [B]  | chase   | side_right       | rgb(255,255,  0) | speed=25  repeat=0
 2026-03-27 13:34:09 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=15  repeat=0
 2026-03-27 13:41:09 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-03-27 13:41:09 | INFO | LED: Launcher-Exit — Power-Down-Animation...
+2026-03-27 13:41:09 | INFO | LED: Launcher-Exit â€” Power-Down-Animation...
 2026-03-27 13:41:10 | INFO | LEDBridge: gestoppt.
 2026-03-27 13:53:01 | INFO | === LAUNCHER GESTARTET ===
 2026-03-27 13:53:01 | INFO | 3 Spiele erfolgreich aus games.json geladen.
@@ -69,7 +69,7 @@
 2026-03-27 13:53:01 | INFO | LED [B]  | chase   | side_right       | rgb(255,255,  0) | speed=25  repeat=0
 2026-03-27 13:53:01 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=15  repeat=0
 2026-03-27 13:53:03 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-03-27 13:53:03 | INFO | LED: Launcher-Exit — Power-Down-Animation...
+2026-03-27 13:53:03 | INFO | LED: Launcher-Exit â€” Power-Down-Animation...
 2026-03-27 13:53:04 | INFO | LEDBridge: gestoppt.
 2026-03-27 14:22:54 | INFO | === LAUNCHER GESTARTET ===
 2026-03-27 14:22:54 | INFO | 3 Spiele erfolgreich aus games.json geladen.
@@ -102,7 +102,7 @@
 2026-03-27 15:19:05 | INFO | server listening on [::1]:8765
 2026-03-27 15:19:05 | INFO | server listening on 127.0.0.1:8765
 2026-03-27 15:19:05 | INFO | LED-WS: Server bereit auf ws://localhost:8765
-2026-03-27 15:19:05 | INFO | ESP32 bereit — v1.0.0 | Kette A: 186 LEDs | Kette B: 186 LEDs
+2026-03-27 15:19:05 | INFO | ESP32 bereit â€” v1.0.0 | Kette A: 186 LEDs | Kette B: 186 LEDs
 2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=15  repeat=0
 2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | monitor_right    | rgb(255,255,  0) | speed=15  repeat=0
 2026-03-27 15:19:05 | INFO | LEDBridge: gestartet | Serial: COM3 | WS: ws://localhost:8765
@@ -122,7 +122,7 @@
 2026-03-27 15:19:05 | INFO | LED [B]  | chase   | side_right       | rgb(255,255,  0) | speed=25  repeat=0
 2026-03-27 15:19:05 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=15  repeat=0
 2026-03-27 15:19:17 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-03-27 15:19:17 | INFO | LED: Launcher-Exit — Power-Down-Animation...
+2026-03-27 15:19:17 | INFO | LED: Launcher-Exit â€” Power-Down-Animation...
 2026-03-27 15:19:17 | INFO | server closing
 2026-03-27 15:19:17 | INFO | server closed
 2026-03-27 15:19:18 | INFO | LEDBridge: gestoppt.
