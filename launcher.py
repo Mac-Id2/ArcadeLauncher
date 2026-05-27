@@ -7,6 +7,7 @@ import math
 import random
 import logging
 import time
+from LedController import LedController
 
 from config import *
 from assets import init_sprites
@@ -37,6 +38,14 @@ bridge.start()
 
 # Kurz warten, damit der Bridge-Thread hochfahren und Serial-Verbindung zum ESP32 aufbauen kann
 time.sleep(2.0)
+
+# --- LED Controller Initialisierung & Aktivierung ---
+led = LedController()
+
+# Verbindungsaufbau des Controllers zur Bridge abwarten
+time.sleep(1.0)
+
+led.attract_resume()   # Ruhezustand/Ambient-Licht beim Starten des Launchers aktivieren
 
 logging.info(f"System-Info: {platform.system()} | Echter Monitor: {REAL_W}x{REAL_H} | Virtuell: {sw}x{sh}")
 
@@ -139,13 +148,13 @@ while running:
                     running = False
                 continue
             
-            # Navigation mit LED-Feedback (Bridge zeigt Spielfarbe an)
+            # Navigation mit LED-Feedback (Kurzer Cyan-Blink)
             if event.key == pygame.K_w: 
                 selected_index = (selected_index - 1) % len(games)
-                bridge.notify_selection_changed(games[selected_index].get("display_name", ""))
+                led.send_effect(chain="A", effect_type="blink", segment=99, r=0, g=230, b=255, speed=80, repeat=1, priority=2, event_key="menu_scroll")
             elif event.key == pygame.K_s: 
                 selected_index = (selected_index + 1) % len(games)
-                bridge.notify_selection_changed(games[selected_index].get("display_name", ""))
+                led.send_effect(chain="A", effect_type="blink", segment=99, r=0, g=230, b=255, speed=80, repeat=1, priority=2, event_key="menu_scroll")
             
             # --- ECHTEN SPIELSTART TRIGGERN ---
             elif event.key == pygame.K_SPACE:
@@ -162,6 +171,16 @@ while running:
                         try:
                             game_dir = os.path.dirname(exe_p)
 
+                            # LED-Startsequenz zünden & Ambient-Modus pausieren
+                            led.attract_pause()
+                            game_identifier = game_name.upper()
+                            if "SPACE" in game_identifier:
+                                led.effect_start_space_invaders()  # Grüner Matrix-Wipe
+                            elif "ASTEROID" in game_identifier:
+                                led.effect_start_asteroids()       # Weißer, kühler Puls
+                            else:
+                                led.effect_start_pacman()          # Gelber Chase/Lauflicht-Effekt
+                            
                             # --- 1. PYINSTALLER ENVIRONMENT CLEANUP ---
                             clean_env = os.environ.copy()
                             vars_to_remove = [
@@ -211,11 +230,15 @@ while running:
 
                             logging.info(f"Spiel läuft im Vordergrund.")
                             
+                            # Blockierende Überwachungsschleife: Wartet, bis das Spiel geschlossen wird
+
                             # Blockierende Überwachungsschleife: Prüft periodisch den Prozessstatus
                             while True:
                                 if process.poll() is not None:
                                     logging.info(f"Erfolgreich beendet: {game_name}")
-                                    bridge.notify_game_stop()
+                                    
+                                    # LED-Beendigungssequenz zünden & Ambient wieder anwerfen
+                                    led.attract_resume()     # Reaktiviert das Ambient-Menü-Licht
                                     break
                                     
                                 # WICHTIG: Sagt dem OS, dass das Fenster noch "lebt", und leert angestaute Events (verhindert das Einfrieren)
@@ -240,7 +263,7 @@ while running:
                         except Exception as e:
                             logging.error(f"UNERWARTETER FEHLER beim Start von {game_name}: {e}")
                             error_message = f"ERROR: {str(e)[:25]}"
-                            bridge.notify_game_stop() # Notfall-Fallback, damit LEDs nicht aus bleiben
+                            led.attract_resume() # Notfall-Fallback, damit LEDs nicht aus bleiben
                     else:
                         error_message = "EXECUTABLE NOT FOUND"
                 else:
