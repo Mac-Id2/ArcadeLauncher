@@ -1,5 +1,4 @@
 
-
 import pygame
 import subprocess
 import sys
@@ -233,7 +232,6 @@ while running:
                                     logging.info(f"Erfolgreich beendet: {game_name}")
                                     
                                     # LED-Beendigungssequenz zünden & Ambient wieder anwerfen
-                                    led.effect_game_ended()  # Roter Wipe
                                     led.attract_resume()     # Reaktiviert das Ambient-Menü-Licht
                                     break
                                     
