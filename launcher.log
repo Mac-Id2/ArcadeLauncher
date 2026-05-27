@@ -2,254 +2,127 @@
 2026-03-26 15:11:49 | INFO | 3 Spiele erfolgreich aus games.json geladen.
 2026-03-26 15:11:50 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
 2026-03-26 15:11:59 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-03-26 22:24:27 | INFO | === LAUNCHER GESTARTET ===
-2026-03-26 22:24:27 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-03-26 22:24:27 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
-2026-03-26 22:24:38 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-05-26 11:21:22 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 11:21:22 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 11:21:22 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 11:21:44 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 11:21:45 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 11:21:45 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 11:21:45 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 11:21:46 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 11:21:46 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 11:21:47 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 11:21:48 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 11:21:48 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 11:22:08 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-05-26 12:50:00 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 12:50:00 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 12:50:00 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 12:50:04 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:50:05 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:50:05 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:50:05 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:50:05 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:50:05 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:50:09 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 12:50:09 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 12:50:09 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 12:50:10 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:10 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:11 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:11 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:11 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:12 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:12 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:12 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:12 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:12 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:12 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:13 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:13 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:13 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:13 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 12:50:13 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 12:50:14 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:50:14 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 12:50:14 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:50:14 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:14 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 12:50:14 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:50:15 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:15 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 12:50:15 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:50:15 | INFO | Start-Versuch: ASTEROIDS auf OS: Darwin
-2026-05-26 12:50:18 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-05-26 12:53:31 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 12:53:31 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 12:53:32 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 12:53:35 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:35 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:36 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:36 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:36 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:36 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:36 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:36 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:37 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:37 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:37 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:38 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:38 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:38 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:38 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:38 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:39 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:39 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:39 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:40 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:40 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:40 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:40 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:41 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:41 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:41 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:42 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:42 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:42 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:42 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:42 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:53:46 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-05-26 12:57:31 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 12:57:31 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 12:57:31 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 12:57:33 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 12:57:37 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-05-26 15:44:29 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 15:44:29 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 15:44:29 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 15:44:30 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:31 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:32 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:32 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:32 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:32 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:32 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:32 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:33 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:33 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:33 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:33 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:33 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:33 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:34 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:34 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:34 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:34 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:34 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:35 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:35 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:35 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:35 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:35 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:36 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:36 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:36 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:36 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:36 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:37 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:37 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:44:38 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-05-26 15:45:24 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 15:45:24 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 15:45:24 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 15:45:25 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:45:25 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:45:26 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:45:26 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:45:29 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-05-26 15:46:36 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 15:46:36 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 15:46:36 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 15:46:37 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:37 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:37 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:37 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:38 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:39 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:39 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:39 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:39 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:39 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:39 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:40 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:40 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:40 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:46:42 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-05-26 15:52:00 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 15:52:00 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 15:52:00 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 15:52:01 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:52:01 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:52:01 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:52:02 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:52:02 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:52:02 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:52:02 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:52:02 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:52:05 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 15:52:07 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-05-26 15:54:41 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 15:54:41 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 15:54:41 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 15:54:45 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 15:54:45 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 15:54:46 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 15:54:46 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 15:54:46 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 15:54:46 | INFO | Start-Versuch: PAC-MAN auf OS: Darwin
-2026-05-26 15:54:50 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-05-26 16:02:27 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 16:02:27 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 16:02:27 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 16:04:23 | INFO | === LAUNCHER WIRD BEENDET ===
-2026-05-26 16:08:46 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 16:08:46 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 16:08:46 | INFO | System-Info: Darwin | Echter Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 16:08:48 | INFO | Start-Versuch: SPACE INVADERS auf OS: Darwin
-2026-05-26 16:08:48 | WARNING | Konnte chmod nicht setzen: [Errno 2] No such file or directory: '/Users/brauchs/Desktop/spiele/Space-Invaders/game'
-2026-05-26 16:08:49 | ERROR | UNERWARTETER FEHLER beim Start von SPACE INVADERS: [Errno 2] No such file or directory: '/Users/brauchs/Desktop/spiele/Space-Invaders'
-2026-05-26 16:12:54 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 16:12:54 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 16:12:54 | INFO | [TEST] Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 16:12:55 | INFO | [TEST-START] Simuliere Start von: SPACE INVADERS
-2026-05-26 16:12:59 | INFO | [TEST-ENDE] Simuliere Beendigung von: SPACE INVADERS
-2026-05-26 16:13:03 | INFO | [TEST-START] Simuliere Start von: PAC-MAN
-2026-05-26 16:13:07 | INFO | [TEST-ENDE] Simuliere Beendigung von: PAC-MAN
-2026-05-26 16:13:10 | INFO | [TEST-START] Simuliere Start von: ASTEROIDS
-2026-05-26 16:13:14 | INFO | [TEST-ENDE] Simuliere Beendigung von: ASTEROIDS
-2026-05-26 16:13:16 | INFO | [TEST-START] Simuliere Start von: ASTEROIDS
-2026-05-26 16:13:20 | INFO | [TEST-ENDE] Simuliere Beendigung von: ASTEROIDS
-2026-05-26 16:15:23 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 16:15:23 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 16:15:23 | INFO | [TEST] Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 16:15:25 | INFO | [TEST-START] Simuliere Start von: SPACE INVADERS
-2026-05-26 16:15:29 | INFO | [TEST-ENDE] Simuliere Beendigung von: SPACE INVADERS
-2026-05-26 16:15:32 | INFO | [TEST-START] Simuliere Start von: PAC-MAN
-2026-05-26 16:15:36 | INFO | [TEST-ENDE] Simuliere Beendigung von: PAC-MAN
-2026-05-26 16:15:37 | INFO | [TEST-START] Simuliere Start von: ASTEROIDS
-2026-05-26 16:15:41 | INFO | [TEST-ENDE] Simuliere Beendigung von: ASTEROIDS
-2026-05-26 16:16:59 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 16:16:59 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 16:16:59 | INFO | [TEST] Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 16:17:03 | INFO | [TEST-START] Simuliere Start von: ASTEROIDS
-2026-05-26 16:17:07 | INFO | [TEST-ENDE] Simuliere Beendigung von: ASTEROIDS
-2026-05-26 16:24:50 | INFO | [TEST-START] Simuliere Start von: ASTEROIDS
-2026-05-26 16:24:54 | INFO | [TEST-ENDE] Simuliere Beendigung von: ASTEROIDS
-2026-05-26 16:24:59 | INFO | [TEST-START] Simuliere Start von: PAC-MAN
-2026-05-26 16:25:03 | INFO | [TEST-ENDE] Simuliere Beendigung von: PAC-MAN
-2026-05-26 16:25:05 | INFO | [TEST-START] Simuliere Start von: SPACE INVADERS
-2026-05-26 16:25:09 | INFO | [TEST-ENDE] Simuliere Beendigung von: SPACE INVADERS
-2026-05-26 16:29:05 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 16:29:05 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 16:29:06 | INFO | [TEST] Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-26 16:29:06 | INFO | [TEST-START] Simuliere Start von: SPACE INVADERS
-2026-05-26 16:29:10 | INFO | [TEST-ENDE] Simuliere Beendigung von: SPACE INVADERS
-2026-05-26 16:29:13 | INFO | [TEST-START] Simuliere Start von: PAC-MAN
-2026-05-26 16:29:17 | INFO | [TEST-ENDE] Simuliere Beendigung von: PAC-MAN
-2026-05-26 16:29:17 | INFO | [TEST-START] Simuliere Start von: PAC-MAN
-2026-05-26 16:29:21 | INFO | [TEST-ENDE] Simuliere Beendigung von: PAC-MAN
-2026-05-26 16:29:21 | INFO | [TEST-START] Simuliere Start von: PAC-MAN
-2026-05-26 16:29:25 | INFO | [TEST-ENDE] Simuliere Beendigung von: PAC-MAN
-2026-05-26 16:29:26 | INFO | [TEST-START] Simuliere Start von: PAC-MAN
-2026-05-26 16:29:30 | INFO | [TEST-ENDE] Simuliere Beendigung von: PAC-MAN
-2026-05-26 16:29:43 | INFO | [TEST-START] Simuliere Start von: ASTEROIDS
-2026-05-26 16:29:47 | INFO | [TEST-ENDE] Simuliere Beendigung von: ASTEROIDS
-2026-05-26 16:30:59 | INFO | === LAUNCHER GESTARTET ===
-2026-05-26 16:30:59 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-26 16:31:00 | INFO | [TEST] Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-27 08:01:32 | INFO | === LAUNCHER GESTARTET ===
-2026-05-27 08:01:32 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-27 08:01:32 | INFO | [TEST] Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-27 08:01:45 | INFO | === LAUNCHER GESTARTET ===
-2026-05-27 08:01:45 | INFO | 3 Spiele erfolgreich aus games.json geladen.
-2026-05-27 08:01:46 | INFO | [TEST] Monitor: 1728x1117 | Virtuell: 1280x720
-2026-05-27 08:01:47 | INFO | [TEST-START] Simuliere Start von: SPACE INVADERS
-2026-05-27 08:01:51 | INFO | [TEST-ENDE] Simuliere Beendigung von: SPACE INVADERS
-2026-05-27 08:02:03 | INFO | [TEST-START] Simuliere Start von: PAC-MAN
-2026-05-27 08:02:07 | INFO | [TEST-ENDE] Simuliere Beendigung von: PAC-MAN
-2026-05-27 08:02:10 | INFO | [TEST-START] Simuliere Start von: ASTEROIDS
-2026-05-27 08:02:14 | INFO | [TEST-ENDE] Simuliere Beendigung von: ASTEROIDS
+2026-03-27 12:57:46 | INFO | === LAUNCHER GESTARTET ===
+2026-03-27 12:57:46 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-03-27 12:57:46 | INFO | System-Info: Windows | Echter Monitor: 1920x1080 | Virtuell: 1280x720
+2026-03-27 12:59:48 | INFO | Start-Versuch: ASTEROIDS auf OS: Windows
+2026-03-27 12:59:49 | INFO | Start-Versuch: ASTEROIDS auf OS: Windows
+2026-03-27 12:59:49 | INFO | Start-Versuch: ASTEROIDS auf OS: Windows
+2026-03-27 12:59:49 | INFO | Start-Versuch: ASTEROIDS auf OS: Windows
+2026-03-27 12:59:50 | INFO | Start-Versuch: ASTEROIDS auf OS: Windows
+2026-03-27 12:59:50 | INFO | Start-Versuch: ASTEROIDS auf OS: Windows
+2026-03-27 13:00:13 | INFO | === LAUNCHER WIRD BEENDET ===
+2026-03-27 13:11:38 | INFO | === LAUNCHER GESTARTET ===
+2026-03-27 13:11:38 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-03-27 13:11:39 | INFO | System-Info: Windows | Echter Monitor: 1920x1080 | Virtuell: 1280x720
+2026-03-27 13:11:39 | INFO | LEDBridge: Verbunden mit ws://localhost:8765
+2026-03-27 13:11:39 | INFO | LEDBridge: Client gestartet \u2192 ws://localhost:8765
+2026-03-27 13:11:50 | INFO | === LAUNCHER WIRD BEENDET ===
+2026-03-27 13:11:50 | INFO | LEDBridge: gestoppt.
+2026-03-27 13:34:09 | INFO | === LAUNCHER GESTARTET ===
+2026-03-27 13:34:09 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-03-27 13:34:09 | INFO | System-Info: Windows | Echter Monitor: 1920x1080 | Virtuell: 1280x720
+2026-03-27 13:34:09 | INFO | LEDBridge: Verbunden mit ws://localhost:8765
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | monitor_right    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | monitor_bottom   | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | monitor_left     | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | monitor_top      | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | control_panel    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:34:09 | INFO | LED [B]  | rainbow | side_left        | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 13:34:09 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 13:34:09 | INFO | LED [B]  | rainbow | side_right       | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 13:34:09 | INFO | LEDBridge: Client gestartet \u2192 ws://localhost:8765
+2026-03-27 13:34:09 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | wipe    | control_panel    | rgb(255,255,  0) | speed=35  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | fill    | monitor_right    | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | fill    | monitor_bottom   | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | fill    | monitor_left     | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:34:09 | INFO | LED [A]  | fill    | monitor_top      | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:34:09 | INFO | LED [B]  | chase   | side_left        | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 13:34:09 | INFO | LED [B]  | chase   | side_right       | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 13:34:09 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=15  repeat=0
+2026-03-27 13:41:09 | INFO | === LAUNCHER WIRD BEENDET ===
+2026-03-27 13:41:09 | INFO | LED: Launcher-Exit — Power-Down-Animation...
+2026-03-27 13:41:10 | INFO | LEDBridge: gestoppt.
+2026-03-27 13:53:01 | INFO | === LAUNCHER GESTARTET ===
+2026-03-27 13:53:01 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-03-27 13:53:01 | INFO | System-Info: Windows | Echter Monitor: 1920x1080 | Virtuell: 1280x720
+2026-03-27 13:53:01 | INFO | LEDBridge: Verbunden mit ws://localhost:8765
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | monitor_right    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:53:01 | INFO | LEDBridge: Client gestartet \u2192 ws://localhost:8765
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | monitor_bottom   | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | monitor_left     | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | monitor_top      | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | control_panel    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 13:53:01 | INFO | LED [B]  | rainbow | side_left        | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 13:53:01 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 13:53:01 | INFO | LED [B]  | rainbow | side_right       | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | wipe    | control_panel    | rgb(255,255,  0) | speed=35  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | fill    | monitor_right    | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | fill    | monitor_bottom   | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | fill    | monitor_left     | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:53:01 | INFO | LED [A]  | fill    | monitor_top      | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 13:53:01 | INFO | LED [B]  | chase   | side_left        | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 13:53:01 | INFO | LED [B]  | chase   | side_right       | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 13:53:01 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=15  repeat=0
+2026-03-27 13:53:03 | INFO | === LAUNCHER WIRD BEENDET ===
+2026-03-27 13:53:03 | INFO | LED: Launcher-Exit — Power-Down-Animation...
+2026-03-27 13:53:04 | INFO | LEDBridge: gestoppt.
+2026-03-27 14:22:54 | INFO | === LAUNCHER GESTARTET ===
+2026-03-27 14:22:54 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-03-27 14:22:55 | INFO | System-Info: Windows | Echter Monitor: 1920x1080 | Virtuell: 1280x720
+2026-03-27 14:22:55 | INFO | LEDBridge: Verbunden mit ws://localhost:8765
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | monitor_right    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | monitor_bottom   | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | monitor_left     | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 14:22:55 | INFO | LEDBridge: Client gestartet \u2192 ws://localhost:8765
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | monitor_top      | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | control_panel    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 14:22:55 | INFO | LED [B]  | rainbow | side_left        | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 14:22:55 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 14:22:55 | INFO | LED [B]  | rainbow | side_right       | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | wipe    | control_panel    | rgb(255,255,  0) | speed=35  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | fill    | monitor_right    | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | fill    | monitor_bottom   | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | fill    | monitor_left     | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 14:22:55 | INFO | LED [A]  | fill    | monitor_top      | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 14:22:55 | INFO | LED [B]  | chase   | side_left        | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 14:22:55 | INFO | LED [B]  | chase   | side_right       | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 14:22:55 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=15  repeat=0
+2026-03-27 15:19:04 | INFO | === LAUNCHER GESTARTET ===
+2026-03-27 15:19:04 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-03-27 15:19:05 | INFO | System-Info: Windows | Echter Monitor: 1920x1080 | Virtuell: 1280x720
+2026-03-27 15:19:05 | INFO | LED: ESP32 gefunden auf COM3 (Silicon Labs CP210x USB to UART Bridge (COM3))
+2026-03-27 15:19:05 | INFO | LED: Serial verbunden \u2192 COM3 @ 115200 Baud
+2026-03-27 15:19:05 | INFO | server listening on [::1]:8765
+2026-03-27 15:19:05 | INFO | server listening on 127.0.0.1:8765
+2026-03-27 15:19:05 | INFO | LED-WS: Server bereit auf ws://localhost:8765
+2026-03-27 15:19:05 | INFO | ESP32 bereit — v1.0.0 | Kette A: 186 LEDs | Kette B: 186 LEDs
+2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | monitor_right    | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 15:19:05 | INFO | LEDBridge: gestartet | Serial: COM3 | WS: ws://localhost:8765
+2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | monitor_bottom   | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | monitor_left     | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | monitor_top      | rgb(255,255,  0) | speed=15  repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 15:19:05 | INFO | LED [B]  | rainbow | side_left        | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | wipe    | control_panel    | rgb(255,255,  0) | speed=35  repeat=0
+2026-03-27 15:19:05 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | fill    | monitor_right    | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 15:19:05 | INFO | LED [B]  | rainbow | side_right       | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | fill    | monitor_bottom   | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | fill    | monitor_left     | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 15:19:05 | INFO | LED [A]  | fill    | monitor_top      | rgb(255,255,  0) | speed=50  repeat=0
+2026-03-27 15:19:05 | INFO | LED [B]  | chase   | side_left        | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 15:19:05 | INFO | LED [B]  | chase   | side_right       | rgb(255,255,  0) | speed=25  repeat=0
+2026-03-27 15:19:05 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=15  repeat=0
+2026-03-27 15:19:17 | INFO | === LAUNCHER WIRD BEENDET ===
+2026-03-27 15:19:17 | INFO | LED: Launcher-Exit — Power-Down-Animation...
+2026-03-27 15:19:17 | INFO | server closing
+2026-03-27 15:19:17 | INFO | server closed
+2026-03-27 15:19:18 | INFO | LEDBridge: gestoppt.

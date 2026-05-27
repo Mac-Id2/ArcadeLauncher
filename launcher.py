@@ -13,12 +13,18 @@ from LedController import LedController
 
 from config import *
 from assets import init_sprites
+from led_bridge import get_bridge
+
+# --- SDL2 Fix für Linux (Fokus-Verlust) ---
+# Zwingt Pygame dazu, sich NICHT in den Hintergrund zu minimieren, 
+# wenn das Spiel startet und den Fokus klaut.
+os.environ['SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS'] = '0'
 
 # --- Initialisierung: Pygame & Display ---
 pygame.init()
 pygame.mouse.set_visible(False)
 
-# 1. Physische Bildschirmauflösung ermitteln (Fullscreen)
+# 1. Physische Bildschirmauflösung ermitteln (Fullscreen für ALLE Systeme)
 real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 REAL_W, REAL_H = real_screen.get_size()
 
@@ -33,6 +39,10 @@ led = LedController()
 led.attract_resume() # Ruhezustand/Ambient-Licht beim Starten des Launchers aktivieren
 
 logging.info(f"System-Info: {platform.system()} | Echter Monitor: {REAL_W}x{REAL_H} | Virtuell: {sw}x{sh}")
+
+# --- LED Bridge starten (Hintergrund-Thread) ----------------------------------
+led = get_bridge()
+led.start()
 
 # --- Laden der Assets & Typografie ---
 try:
@@ -106,10 +116,15 @@ except: pass
 
 # --- Hauptschleife (Main Loop) Setup ---
 selected_index = 0
+prev_selected_index = -1   # LED: Selektionsänderung erkennen
 error_message = ""
 frame_counter = 0
 running_pac_x = -200
 running = True
+
+# Initiale LED-Selektion setzen sobald Spiele geladen sind
+if games:
+    led.notify_selection_changed(games[0].get("display_name", ""))
 
 while running:
     frame_counter += 1
@@ -198,14 +213,21 @@ while running:
                             if aktuelles_os == "Darwin": pygame.display.iconify()
                             
                             # --- 3. PROZESS STARTEN ---
+
+                            # --- LED: Spiel-Start-Effekt ---
+                            led.notify_game_start(game_name)
+
+                            # --- SPIEL STARTEN ---
                             if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
                                 process = subprocess.Popen(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
                             else:
                                 process = subprocess.Popen([exe_p], cwd=game_dir, env=clean_env)
-                            
+
                             logging.info(f"Spiel läuft im Vordergrund.")
                             
                             # Blockierende Überwachungsschleife: Wartet, bis das Spiel geschlossen wird
+
+                            # Blockierende Überwachungsschleife: Prüft periodisch den Prozessstatus
                             while True:
                                 if process.poll() is not None:
                                     logging.info(f"Erfolgreich beendet: {game_name}")
@@ -214,6 +236,10 @@ while running:
                                     led.effect_game_ended()  # Roter Wipe
                                     led.attract_resume()     # Reaktiviert das Ambient-Menü-Licht
                                     break
+                                    
+                                # WICHTIG: Sagt dem OS, dass das Fenster noch "lebt", und leert angestaute Events (verhindert das Einfrieren)
+                                pygame.event.pump()
+                                pygame.event.clear()
                                 
                                 pygame.time.wait(1000) # Polling-Intervall (1 Sekunde)
 
@@ -382,5 +408,6 @@ while running:
     clock.tick(60)
 
 logging.info("=== LAUNCHER WIRD BEENDET ===")
+led.notify_launcher_exit()   # Power-Down-Animation → alle LEDs aus
 pygame.quit()
 sys.exit()
