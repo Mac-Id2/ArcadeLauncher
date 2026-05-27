@@ -136,7 +136,7 @@ class LEDBridge:
         self._attract_event   = threading.Event()
 
         # ── Launcher-Lock + Keepalive ─────────────────────────────────────────
-        self._launcher_locked     = True
+        self._launcher_locked     = False
         self._locked_effects: List[dict] = []
         self._locked_effects_lock = threading.Lock()
         self._locked_recording    = False
