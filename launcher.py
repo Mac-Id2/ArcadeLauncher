@@ -33,19 +33,22 @@ screen = pygame.Surface((sw, sh)) # Sämtliche Zeichenoperationen erfolgen auf d
 
 clock = pygame.time.Clock()
 
-# --- LED Controller Initialisierung & Aktivierung ---
-led = LedController()
-
-# Verbindungsaufbau zur Bridge abwarten
-time.sleep(2.0)
-
-led.attract_resume() # Ruhezustand/Ambient-Licht beim Starten des Launchers aktivieren
-
-logging.info(f"System-Info: {platform.system()} | Echter Monitor: {REAL_W}x{REAL_H} | Virtuell: {sw}x{sh}")
-
 # --- LED Bridge starten (Hintergrund-Thread) ----------------------------------
 bridge = get_bridge()
 bridge.start()
+
+# Kurz warten, damit der Bridge-Thread hochfahren und Serial-Verbindung zum ESP32 aufbauen kann
+time.sleep(2.0)
+
+# --- LED Controller Initialisierung & Aktivierung ---
+led = LedController()
+
+# Verbindungsaufbau des Controllers zur Bridge abwarten
+time.sleep(1.0)
+
+led.attract_resume()   # Ruhezustand/Ambient-Licht beim Starten des Launchers aktivieren
+
+logging.info(f"System-Info: {platform.system()} | Echter Monitor: {REAL_W}x{REAL_H} | Virtuell: {sw}x{sh}")
 
 # --- Laden der Assets & Typografie ---
 try:
