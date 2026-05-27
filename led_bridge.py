@@ -544,12 +544,8 @@ class LEDBridge:
         if command != "effect":
             return
 
-        # Wenn Launcher gesperrt: Spiel-Effekte blockieren
-        if self._launcher_locked:
-            logger.debug(
-                "LED-WS: Spiel-Effekt von %s blockiert (Launcher gesperrt)", addr
-            )
-            return
+        # Spiel-Effekt direkt an ESP32 weiterleiten
+        self._write_serial(data)
 
         # Spiel-Effekt direkt an ESP32 weiterleiten
         self._write_serial(data)
