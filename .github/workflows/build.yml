@@ -62,9 +62,9 @@ jobs:
           # --- PyInstaller Ausführung ---
           # Auch der Build-Prozess selbst muss für Intel-Macs zwingend durch Rosetta geroutet werden.
           if [ "${{ matrix.artifact_name }}" = "macos-x64" ]; then
-            arch -x86_64 pyinstaller --noconsole --onefile launcher.py
+            arch -x86_64 pyinstaller --noconsole --onefile --hidden-import websockets --hidden-import serial launcher.py
           else
-            pyinstaller --noconsole --onefile launcher.py
+            pyinstaller --noconsole --onefile --hidden-import websockets --hidden-import serial launcher.py
           fi
           
           # --- Binärdateien strukturieren ---
