@@ -96,16 +96,16 @@ class LedController:
 
     def effect_start_space_invaders(self):
         """Start Space Invaders: Grüner Matrix-Wipe-Effekt"""
-        self.send_effect(chain="A", effect_type="wipe", segment=99, r=0, g=255, b=0, speed=20, repeat=2, priority=4, event_key="start_si")
+        self.send_effect(chain="A", effect_type="wipe", segment=99, r=0, g=255, b=0, speed=20, repeat=2, priority=2, event_key="start_si")
 
     def effect_start_asteroids(self):
         """Start Asteroids: Weißer, kühler Puls-Effekt"""
-        self.send_effect(chain="A", effect_type="wipe", segment=99, r=200, g=220, b=255, speed=20, repeat=1, priority=4, event_key="start_asteroids")
+        self.send_effect(chain="A", effect_type="wipe", segment=99, r=200, g=220, b=255, speed=20, repeat=1, priority=2, event_key="start_asteroids")
 
     def effect_game_ended(self):
         """Spiel endet: Roter Wipe signalisiert Rückkehr zum Menü"""
-        self.send_effect(chain="A", effect_type="wipe", segment=99, r=255, g=0, b=0, speed=30, repeat=1, priority=4, event_key="game_ended")
+        self.send_effect(chain="A", effect_type="wipe", segment=99, r=255, g=0, b=0, speed=30, repeat=1, priority=2, event_key="game_ended")
 
     def effect_highscore(self):
         """Highscore-Anzeige: Farbwechselndes, magisches Funkeln"""
-        self.send_effect(chain="A", effect_type="sparkle", segment=99, r=255, g=0, b=255, speed=40, repeat=6, priority=4, event_key="launcher_highscore")
+        self.send_effect(chain="A", effect_type="sparkle", segment=99, r=255, g=0, b=255, speed=40, repeat=6, priority=2, event_key="launcher_highscore")
