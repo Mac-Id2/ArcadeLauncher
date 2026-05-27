@@ -36,13 +36,8 @@ clock = pygame.time.Clock()
 # --- LED Controller Initialisierung & Aktivierung ---
 led = LedController()
 
-# Auf WebSocket-Verbindung zur Bridge warten (max. 3 Sekunden)
-for _ in range(30):
-    if led.is_connected():
-        break
-    time.sleep(0.1)
-else:
-    logging.warning("LED Bridge nach 3s nicht erreichbar, fahre trotzdem fort")
+# Verbindungsaufbau zur Bridge abwarten
+time.sleep(2.0)
 
 led.attract_resume() # Ruhezustand/Ambient-Licht beim Starten des Launchers aktivieren
 
