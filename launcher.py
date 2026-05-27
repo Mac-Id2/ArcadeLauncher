@@ -41,8 +41,8 @@ led.attract_resume() # Ruhezustand/Ambient-Licht beim Starten des Launchers akti
 logging.info(f"System-Info: {platform.system()} | Echter Monitor: {REAL_W}x{REAL_H} | Virtuell: {sw}x{sh}")
 
 # --- LED Bridge starten (Hintergrund-Thread) ----------------------------------
-led = get_bridge()
-led.start()
+bridge = get_bridge()
+bridge.start()
 
 # --- Laden der Assets & Typografie ---
 try:
@@ -124,7 +124,7 @@ running = True
 
 # Initiale LED-Selektion setzen sobald Spiele geladen sind
 if games:
-    led.notify_selection_changed(games[0].get("display_name", ""))
+    bridge.notify_selection_changed(games[0].get("display_name", ""))
 
 while running:
     frame_counter += 1
@@ -215,7 +215,7 @@ while running:
                             # --- 3. PROZESS STARTEN ---
 
                             # --- LED: Spiel-Start-Effekt ---
-                            led.notify_game_start(game_name)
+                            bridge.notify_game_start(game_name)
 
                             # --- SPIEL STARTEN ---
                             if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
@@ -408,6 +408,6 @@ while running:
     clock.tick(60)
 
 logging.info("=== LAUNCHER WIRD BEENDET ===")
-led.notify_launcher_exit()   # Power-Down-Animation → alle LEDs aus
+bridge.notify_launcher_exit()   # Power-Down-Animation → alle LEDs aus
 pygame.quit()
 sys.exit()
