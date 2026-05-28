@@ -142,6 +142,7 @@ class LEDBridge:
         self._locked_recording    = False
 
         self._current_game: Optional[str] = None
+        self._ambient_thread: Optional[threading.Thread] = None
         self._running = False
 
     # ── Start / Stop ──────────────────────────────────────────────────────────
@@ -152,8 +153,9 @@ class LEDBridge:
         self._connect_serial()
         self._loop_thread.start()
         time.sleep(0.3)
-        threading.Thread(target=self._attract_loop,   daemon=True, name="LED-Attract").start()
-        threading.Thread(target=self._keepalive_loop, daemon=True, name="LED-Keepalive").start()
+        threading.Thread(target=self._attract_loop,          daemon=True, name="LED-Attract").start()
+        threading.Thread(target=self._keepalive_loop,        daemon=True, name="LED-Keepalive").start()
+        threading.Thread(target=self._serial_reconnect_loop, daemon=True, name="LED-SerialReconnect").start()
         logger.info(
             "LEDBridge: gestartet | Serial: %s | WS: ws://%s:%d",
             self._serial_port or "auto-detect", self._ws_host, self._ws_port,
@@ -166,8 +168,9 @@ class LEDBridge:
         self._send_all_off()
         time.sleep(0.5)
         self._loop.call_soon_threadsafe(self._loop.stop)
-        if self._serial and self._serial.is_open:
-            self._serial.close()
+        with self._serial_lock:
+            if self._serial and self._serial.is_open:
+                self._serial.close()
         logger.info("LEDBridge: gestoppt.")
 
     # ── Öffentliche Launcher-API ──────────────────────────────────────────────
@@ -224,7 +227,8 @@ class LEDBridge:
             self._effect("rainbow", "side_right", 0, 0, 0, speed=20, priority=PRIORITY_LOW)
             self._effect("pulse",   "bottom",     r, g, b, speed=15, priority=PRIORITY_LOW)
 
-        threading.Thread(target=_delayed_ambient, daemon=True).start()
+        self._ambient_thread = threading.Thread(target=_delayed_ambient, daemon=True, name="LED-Ambient")
+        self._ambient_thread.start()
 
     def notify_game_stop(self):
         """Nach Spielende: sofortiger Takeover, dann Attract-Mode neu starten."""
@@ -313,8 +317,8 @@ class LEDBridge:
             "brightness": brightness,
             "priority":   priority,
         }
-        if self._locked_recording:
-            with self._locked_effects_lock:
+        with self._locked_effects_lock:
+            if self._locked_recording:
                 self._locked_effects.append(dict(payload))
         self._write_serial(payload)
 
@@ -364,6 +368,16 @@ class LEDBridge:
                 override = dict(cmd)
                 override["priority"] = PRIORITY_HIGH
                 self._write_serial(override)
+
+    def _serial_reconnect_loop(self):
+        """Prüft alle 5 s ob Serial getrennt ist und stellt Verbindung wieder her."""
+        while self._running:
+            time.sleep(5)
+            with self._serial_lock:
+                is_connected = self._serial is not None and self._serial.is_open
+            if not is_connected and _SERIAL_OK:
+                logger.info("LED: Serial nicht verbunden — versuche Reconnect...")
+                self._connect_serial()
 
     def _reset_prio(self):
         with self._prio_lock:
@@ -468,6 +482,8 @@ class LEDBridge:
                 self._serial.write(data.encode("utf-8"))
         except Exception as exc:
             logger.warning("LED: Serial-Schreibfehler: %s", exc)
+            with self._serial_lock:
+                self._serial = None  # Reconnect-Loop triggern
 
     def _serial_reader(self):
         """ESP32-Antworten empfangen: Heartbeat + NACK."""
@@ -492,7 +508,8 @@ class LEDBridge:
                     )
             except (json.JSONDecodeError, UnicodeDecodeError):
                 pass
-            except Exception:
+            except Exception as e:
+                logger.error("LED: Serial-Reader unerwartet beendet: %s", e)
                 break
 
     # ── WebSocket-Server (für Spiele) ─────────────────────────────────────────
@@ -503,17 +520,19 @@ class LEDBridge:
     async def _ws_serve(self):
         if not _WS_OK:
             return
-        try:
-            async with websockets.serve(
-                self._handle_game_client, self._ws_host, self._ws_port
-            ):
-                logger.info(
-                    "LED-WS: Server bereit auf ws://%s:%d", self._ws_host, self._ws_port
-                )
-                while self._running:
-                    await asyncio.sleep(0.5)
-        except Exception as exc:
-            logger.warning("LED-WS: Server-Fehler: %s", exc)
+        while self._running:
+            try:
+                async with websockets.serve(
+                    self._handle_game_client, self._ws_host, self._ws_port
+                ):
+                    logger.info(
+                        "LED-WS: Server bereit auf ws://%s:%d", self._ws_host, self._ws_port
+                    )
+                    while self._running:
+                        await asyncio.sleep(0.5)
+            except Exception as exc:
+                logger.warning("LED-WS: Server-Fehler: %s — Retry in 5s", exc)
+                await asyncio.sleep(5)
 
     async def _handle_game_client(self, websocket):
         addr = getattr(websocket, "remote_address", "?")
@@ -522,8 +541,8 @@ class LEDBridge:
         try:
             async for message in websocket:
                 await self._handle_game_message(message, websocket)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("LED-WS: Client-Verbindungsfehler (%s): %s", addr, e)
         finally:
             self._ws_clients.discard(websocket)
             logger.info("LED-WS: Spiel getrennt: %s", addr)
@@ -544,7 +563,14 @@ class LEDBridge:
         if command != "effect":
             return
 
-        # Spiel-Effekt direkt an ESP32 weiterleiten
+        color = data.get("color", {})
+        if isinstance(color, dict):
+            data["color"] = {
+                "r": max(0, min(255, int(color.get("r", 0)))),
+                "g": max(0, min(255, int(color.get("g", 0)))),
+                "b": max(0, min(255, int(color.get("b", 0)))),
+            }
+
         self._write_serial(data)
         logger.debug("LED-WS: Spiel-Effekt → ESP32: %s", str(data)[:60])
 

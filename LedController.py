@@ -1,8 +1,11 @@
 import asyncio
+import logging
 import threading
 import json
 import websockets
 import time
+
+logger = logging.getLogger(__name__)
 
 class LedController:
     def __init__(self, url: str = "ws://localhost:8765"):
@@ -29,7 +32,7 @@ class LedController:
         try:
             self._loop.run_until_complete(self._main_logic())
         except Exception as e:
-            print(f"[LED-Controller] Asynchroner Loop abgebrochen: {e}")
+            logger.warning("[LED-Controller] Asynchroner Loop abgebrochen: %s", e)
 
     async def _main_logic(self):
         while True:
@@ -37,43 +40,42 @@ class LedController:
                 async with websockets.connect(self._url, ping_interval=5, ping_timeout=5) as ws:
                     self._ws = ws
                     self._connected_event.set()
-                    print(f"[LED-Controller] Verbindung erfolgreich aufgebaut zu {self._url}")
+                    logger.info("[LED-Controller] Verbindung erfolgreich aufgebaut zu %s", self._url)
                     await ws.wait_closed()
             except Exception as e:
-                print(f"[LED-Controller] Verbindungsfehler: {e}. Reconnect in 2 Sek...")
+                logger.debug("[LED-Controller] Verbindungsfehler: %s. Reconnect in 2 Sek...", e)
                 self._ws = None
                 self._connected_event.clear()
                 await asyncio.sleep(2)
 
-    def send_effect(self, chain, effect_type, segment, r, g, b, speed=100, length=5, repeat=1, dir=1, priority=2, event_key=None):
+    def send_effect(self, chain, effect_type, segment, r, g, b, speed=100, length=5, repeat=1, direction=1, priority=2, event_key=None):
         current_time = time.time()
         cooldown_key = event_key if event_key else effect_type
         cd = self._cooldowns.get(effect_type, 0)
-        
+
         if cd > 0 and (current_time - self._last_sent.get(cooldown_key, 0) < cd):
             return
-            
+
         self._last_sent[cooldown_key] = current_time
 
         payload = {
-            "cmd": "effect", 
-            "chain": chain, 
+            "cmd": "effect",
+            "chain": chain,
             "type": effect_type,
-            "segment": segment, 
+            "segment": segment,
             "color": {"r": r, "g": g, "b": b},
-            "speed": speed, 
-            "length": length, 
-            "repeat": repeat, 
-            "dir": dir,        
+            "speed": speed,
+            "length": length,
+            "repeat": repeat,
+            "dir": direction,
             "priority": priority,
         }
         self._safe_send(json.dumps(payload))
 
-    def attract_pause(self):
-        self._safe_send('{"cmd":"attract","state":"pause"}')
-
-    def attract_resume(self):
-        self._safe_send('{"cmd":"attract","state":"resume"}')
+    def stop(self):
+        self._loop.call_soon_threadsafe(self._loop.stop)
+        self._thread.join(timeout=2.0)
+        self._loop.close()
 
     def _safe_send(self, message):
         if self._ws and self._connected_event.is_set():
@@ -82,30 +84,18 @@ class LedController:
                     try:
                         if self._ws: await self._ws.send(message)
                     except Exception as e:
-                        print(f"[LED-Controller] WebSocket Sende-Fehler: {e}")
-                self._loop.call_soon_threadsafe(lambda: asyncio.create_task(silent_send()))
+                        logger.warning("[LED-Controller] WebSocket Sende-Fehler: %s", e)
+                asyncio.run_coroutine_threadsafe(silent_send(), self._loop)
             except Exception as e:
-                print(f"[LED-Controller] Threadsafe-Fehler beim Queueing: {e}")
+                logger.warning("[LED-Controller] Threadsafe-Fehler beim Queueing: %s", e)
 
     # ─── LAUNCHER EVENTS ───
 
-
     def effect_start_pacman(self):
-        """Start Pac-Man: Gelber Chase/Lauflicht-Effekt"""
         self.send_effect(chain="A", effect_type="chase", segment=99, r=255, g=230, b=0, speed=25, length=8, repeat=4, priority=4, event_key="start_pacman")
 
     def effect_start_space_invaders(self):
-        """Start Space Invaders: Grüner Matrix-Wipe-Effekt"""
         self.send_effect(chain="A", effect_type="wipe", segment=99, r=0, g=255, b=0, speed=20, repeat=2, priority=2, event_key="start_si")
 
     def effect_start_asteroids(self):
-        """Start Asteroids: Weißer, kühler Puls-Effekt"""
         self.send_effect(chain="A", effect_type="wipe", segment=99, r=200, g=220, b=255, speed=20, repeat=1, priority=2, event_key="start_asteroids")
-
-    def effect_game_ended(self):
-        """Spiel endet: Roter Wipe signalisiert Rückkehr zum Menü"""
-        self.send_effect(chain="A", effect_type="wipe", segment=99, r=255, g=0, b=0, speed=30, repeat=1, priority=2, event_key="game_ended")
-
-    def effect_highscore(self):
-        """Highscore-Anzeige: Farbwechselndes, magisches Funkeln"""
-        self.send_effect(chain="A", effect_type="sparkle", segment=99, r=255, g=0, b=255, speed=40, repeat=6, priority=2, event_key="launcher_highscore")

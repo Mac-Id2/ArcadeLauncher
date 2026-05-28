@@ -39,3 +39,36 @@ Für eine korrekte Pfadauflösung zur Laufzeit (sowohl im Quellcode als auch als
         ├── game.x86_64         # Linux
         ├── _internal/          
         └── assets/
+```
+
+---
+
+## Manueller lokaler Build
+
+__1. venv aktivieren__
+
+source .venv/bin/activate
+
+__2. Build__
+
+pyinstaller --noconsole --onefile \
+    --hidden-import websockets \
+    --hidden-import serial \
+    launcher.py
+
+__3. Assets und Config ins Output-Verzeichnis kopieren__
+  
+mkdir -p dist/final_delivery
+mv dist/launcher dist/final_delivery/
+chmod +x dist/final_delivery/launcher
+cp -r assets dist/final_delivery/
+cp games.json dist/final_delivery/
+
+Das fertige Bundle liegt danach in dist/final_delivery/. 
+
+Starten mit: ./dist/final_delivery/launcher
+
+__Wichtig__ 
+
+PyInstaller baut immer nur für das aktuelle OS — auf dem Mac entsteht ein macOS-Binary, 
+kein Windows-Build. Für Cross-Platform-Builds ist weiterhin der CI nötig.

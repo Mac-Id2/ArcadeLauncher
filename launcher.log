@@ -178,3 +178,74 @@
 2026-05-27 09:34:40 | INFO | === LAUNCHER WIRD BEENDET ===
 2026-05-27 09:34:40 | INFO | LED: Launcher-Exit � Power-Down-Animation...
 2026-05-27 09:34:41 | INFO | LEDBridge: gestoppt.
+2026-05-28 09:59:44 | INFO | === LAUNCHER GESTARTET ===
+2026-05-28 09:59:44 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-05-28 09:59:45 | WARNING | LED: Kein ESP32 gefunden — Serial deaktiviert. Tipp: ARCADE_SERIAL_PORT=COM3 setzen.
+2026-05-28 09:59:45 | INFO | server listening on [::1]:8765
+2026-05-28 09:59:45 | INFO | server listening on 127.0.0.1:8765
+2026-05-28 09:59:45 | INFO | LED-WS: Server bereit auf ws://localhost:8765
+2026-05-28 09:59:45 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 09:59:45 | INFO | LED [A]  | pulse   | monitor_right    | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 09:59:45 | INFO | LED [A]  | pulse   | monitor_bottom   | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 09:59:45 | INFO | LEDBridge: gestartet | Serial: auto-detect | WS: ws://localhost:8765
+2026-05-28 09:59:45 | INFO | LED [A]  | pulse   | monitor_left     | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 09:59:45 | INFO | LED [A]  | pulse   | monitor_top      | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 09:59:45 | INFO | LED [A]  | pulse   | control_panel    | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 09:59:45 | INFO | LED [B]  | rainbow | side_left        | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-05-28 09:59:45 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-05-28 09:59:45 | INFO | LED [B]  | rainbow | side_right       | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-05-28 09:59:47 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 09:59:47 | INFO | LED [A]  | pulse   | monitor_right    | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 09:59:47 | INFO | LED [A]  | pulse   | monitor_bottom   | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 09:59:47 | INFO | LED [A]  | pulse   | monitor_left     | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 09:59:47 | INFO | LED [A]  | pulse   | monitor_top      | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 09:59:47 | INFO | LED [A]  | pulse   | control_panel    | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 09:59:47 | INFO | LED [B]  | rainbow | side_left        | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-05-28 09:59:47 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-05-28 09:59:47 | INFO | LED [B]  | rainbow | side_right       | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-05-28 09:59:47 | INFO | connection open
+2026-05-28 09:59:47 | INFO | LED-WS: Spiel verbunden: ('::1', 52701, 0, 0)
+2026-05-28 09:59:48 | INFO | System-Info: Darwin | Echter Monitor: 1920x1080 | Virtuell: 1280x720
+2026-05-28 09:59:48 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=50  repeat=0
+2026-05-28 09:59:48 | INFO | LED [A]  | wipe    | control_panel    | rgb(255,255,  0) | speed=35  repeat=0
+2026-05-28 09:59:48 | INFO | LED [A]  | fill    | monitor_right    | rgb(255,255,  0) | speed=50  repeat=0
+2026-05-28 09:59:48 | INFO | LED [A]  | fill    | monitor_bottom   | rgb(255,255,  0) | speed=50  repeat=0
+2026-05-28 09:59:48 | INFO | LED [A]  | fill    | monitor_left     | rgb(255,255,  0) | speed=50  repeat=0
+2026-05-28 09:59:48 | INFO | LED [A]  | fill    | monitor_top      | rgb(255,255,  0) | speed=50  repeat=0
+2026-05-28 09:59:48 | INFO | LED [B]  | chase   | side_left        | rgb(255,255,  0) | speed=25  repeat=0
+2026-05-28 09:59:48 | INFO | LED [B]  | chase   | side_right       | rgb(255,255,  0) | speed=25  repeat=0
+2026-05-28 09:59:48 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=15  repeat=0
+2026-05-28 10:00:12 | INFO | === LAUNCHER WIRD BEENDET ===
+2026-05-28 10:00:12 | INFO | LED: Launcher-Exit — Power-Down-Animation...
+2026-05-28 10:00:13 | INFO | server closing
+2026-05-28 10:00:13 | INFO | LED-WS: Spiel getrennt: ('::1', 52701, 0, 0)
+2026-05-28 10:00:13 | INFO | server closed
+2026-05-28 10:00:13 | INFO | LEDBridge: gestoppt.
+2026-05-28 10:50:22 | INFO | === LAUNCHER GESTARTET ===
+2026-05-28 10:50:22 | INFO | 3 Spiele erfolgreich aus games.json geladen.
+2026-05-28 10:50:23 | WARNING | LED: Kein ESP32 gefunden — Serial deaktiviert. Tipp: ARCADE_SERIAL_PORT=COM3 setzen.
+2026-05-28 10:50:23 | INFO | server listening on [::1]:8765
+2026-05-28 10:50:23 | INFO | server listening on 127.0.0.1:8765
+2026-05-28 10:50:23 | INFO | LED-WS: Server bereit auf ws://localhost:8765
+2026-05-28 10:50:23 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 10:50:23 | INFO | LED [A]  | pulse   | monitor_right    | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 10:50:23 | INFO | LED [A]  | pulse   | monitor_bottom   | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 10:50:23 | INFO | LED [A]  | pulse   | monitor_left     | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 10:50:23 | INFO | LED [A]  | pulse   | monitor_top      | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 10:50:23 | INFO | LED [A]  | pulse   | control_panel    | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 10:50:23 | INFO | LEDBridge: gestartet | Serial: auto-detect | WS: ws://localhost:8765
+2026-05-28 10:50:23 | INFO | LED [B]  | rainbow | side_left        | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-05-28 10:50:23 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-05-28 10:50:23 | INFO | LED [B]  | rainbow | side_right       | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-05-28 10:50:25 | INFO | LED [A]  | pulse   | marquee          | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 10:50:25 | INFO | LED [A]  | pulse   | monitor_right    | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 10:50:25 | INFO | LED [A]  | pulse   | monitor_bottom   | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 10:50:25 | INFO | LED [A]  | pulse   | monitor_left     | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 10:50:25 | INFO | LED [A]  | pulse   | monitor_top      | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 10:50:25 | INFO | LED [A]  | pulse   | control_panel    | rgb(255,255,  0) | speed=15  repeat=0
+2026-05-28 10:50:25 | INFO | LED [B]  | rainbow | side_left        | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-05-28 10:50:25 | INFO | LED [B]  | rainbow | bottom           | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-05-28 10:50:25 | INFO | LED [B]  | rainbow | side_right       | rgb(  0,  0,  0) | speed=8   repeat=0
+2026-05-28 10:50:25 | INFO | connection open
+2026-05-28 10:50:25 | INFO | LED-WS: Spiel verbunden: ('::1', 53009, 0, 0)
+2026-05-28 10:50:25 | INFO | [LED-Controller] Verbindung erfolgreich aufgebaut zu ws://localhost:8765

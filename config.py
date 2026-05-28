@@ -10,7 +10,6 @@ import os
 import sys
 import json
 import logging
-import pygame
 
 # --- Ermittlung des Ausführungskontexts (PyInstaller Bundle vs. reguläres Python-Skript) ---
 if getattr(sys, "frozen", False):

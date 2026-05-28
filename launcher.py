@@ -45,7 +45,7 @@ led = LedController()
 # Verbindungsaufbau des Controllers zur Bridge abwarten
 time.sleep(1.0)
 
-led.attract_resume()   # Ruhezustand/Ambient-Licht beim Starten des Launchers aktivieren
+bridge.notify_game_stop()   # Attract-Modus beim Start aktivieren
 
 logging.info(f"System-Info: {platform.system()} | Echter Monitor: {REAL_W}x{REAL_H} | Virtuell: {sw}x{sh}")
 
@@ -55,8 +55,8 @@ try:
     title_font = pygame.font.Font(font_path, int(sh * 0.12))
     menu_font = pygame.font.Font(font_path, int(sh * 0.05))
     small_font = pygame.font.Font(font_path, int(sh * 0.02))
-except:
-    logging.warning("Arcade-Font nicht gefunden, nutze System-Fallback.")
+except Exception as e:
+    logging.warning("Arcade-Font nicht gefunden, nutze System-Fallback: %s", e)
     title_font = pygame.font.Font(None, int(sh * 0.12))
     menu_font = pygame.font.Font(None, int(sh * 0.06))
     small_font = pygame.font.Font(None, int(sh * 0.03))
@@ -117,7 +117,8 @@ try:
         
     if len(base_ship_images) == 3: 
         ship_loaded = True
-except: pass
+except Exception as e:
+    logging.warning("Schiff-Sprites konnten nicht geladen werden: %s", e)
 
 # --- Hauptschleife (Main Loop) Setup ---
 selected_index = 0
@@ -131,9 +132,10 @@ running = True
 if games:
     bridge.notify_selection_changed(games[0].get("display_name", ""))
 
+aktuelles_os = platform.system()
+
 while running:
     frame_counter += 1
-    aktuelles_os = platform.system()
 
     # --- Ereignisverarbeitung (Event Handling) ---
     for event in pygame.event.get():
@@ -171,8 +173,6 @@ while running:
                         try:
                             game_dir = os.path.dirname(exe_p)
 
-                            # LED-Startsequenz zünden & Ambient-Modus pausieren
-                            led.attract_pause()
                             game_identifier = game_name.upper()
                             if "SPACE" in game_identifier:
                                 led.effect_start_space_invaders()  # Grüner Matrix-Wipe
@@ -237,8 +237,7 @@ while running:
                                 if process.poll() is not None:
                                     logging.info(f"Erfolgreich beendet: {game_name}")
                                     
-                                    # LED-Beendigungssequenz zünden & Ambient wieder anwerfen
-                                    led.attract_resume()     # Reaktiviert das Ambient-Menü-Licht
+                                    bridge.notify_game_stop()
                                     break
                                     
                                 # WICHTIG: Sagt dem OS, dass das Fenster noch "lebt", und leert angestaute Events (verhindert das Einfrieren)
@@ -263,7 +262,7 @@ while running:
                         except Exception as e:
                             logging.error(f"UNERWARTETER FEHLER beim Start von {game_name}: {e}")
                             error_message = f"ERROR: {str(e)[:25]}"
-                            led.attract_resume() # Notfall-Fallback, damit LEDs nicht aus bleiben
+                            bridge.notify_game_stop()
                     else:
                         error_message = "EXECUTABLE NOT FOUND"
                 else:
@@ -413,5 +412,6 @@ while running:
 
 logging.info("=== LAUNCHER WIRD BEENDET ===")
 bridge.notify_launcher_exit()   # Power-Down-Animation → alle LEDs aus
+led.stop()
 pygame.quit()
 sys.exit()

@@ -110,7 +110,7 @@ ASTEROIDS_SHIP_THRUST = [
 ]
 
 ASTEROID_1 = [
-    "  ######  ",
+    "  ######   ",
     " ######### ",
     "###########",
     "####   ####",
@@ -142,7 +142,7 @@ def create_sprite(matrix, main_color, scale):
     :param scale: int - Skalierungsfaktor (Größe eines logischen Pixels in physischen Pixeln).
     :return: pygame.Surface - Das gerenderte Sprite-Objekt.
     """
-    w, h = len(matrix[0]), len(matrix)
+    w, h = max(len(row) for row in matrix), len(matrix)
     surf = pygame.Surface((w * scale, h * scale), pygame.SRCALPHA)
     
     for y, row in enumerate(matrix):

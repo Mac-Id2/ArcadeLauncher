@@ -1,0 +1,7 @@
+pygame==2.6.1
+websockets==15.0.1
+pyserial==3.5
+setuptools==68.2.2
+
+# Build
+pyinstaller==6.20.0
