@@ -92,10 +92,11 @@ class LedController:
     # ─── LAUNCHER EVENTS ───
 
     def effect_start_pacman(self):
-        self.send_effect(chain="A", effect_type="chase", segment=99, r=255, g=230, b=0, speed=25, length=8, repeat=4, priority=4, event_key="start_pacman")
+        self.send_effect(chain="A", effect_type="scanner", segment=99, r=0, g=255, b=0, speed=50, length=8, repeat=-1, priority=1, event_key="start_pacman")
 
     def effect_start_space_invaders(self):
-        self.send_effect(chain="A", effect_type="wipe", segment=99, r=0, g=255, b=0, speed=20, repeat=2, priority=2, event_key="start_si")
+        self.send_effect(chain="A", effect_type="scanner", segment=99, r=0, g=0, b=255, speed=50, length=8, repeat=-1, priority=1, event_key="start_si")
 
     def effect_start_asteroids(self):
-        self.send_effect(chain="A", effect_type="wipe", segment=99, r=200, g=220, b=255, speed=20, repeat=1, priority=2, event_key="start_asteroids")
+        self.send_effect(chain="A", effect_type="scanner", segment=99, r=255, g=0, b=255, speed=50, length=8, repeat=-1, priority=1, event_key="start_asteroids")
+
