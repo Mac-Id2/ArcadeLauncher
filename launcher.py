@@ -11,390 +11,514 @@ from config import *
 from assets import init_sprites
 from led_bridge import get_bridge
 
-# --- SDL2 Fix für Linux (Fokus-Verlust) ---
-# Zwingt Pygame dazu, sich NICHT in den Hintergrund zu minimieren, 
-# wenn das Spiel startet und den Fokus klaut.
 os.environ['SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS'] = '0'
 
-# --- Initialisierung: Pygame & Display ---
-pygame.init()
-pygame.mouse.set_visible(False)
+VIRTUAL_W, VIRTUAL_H = 1280, 720
 
-# 1. Physische Bildschirmauflösung ermitteln (Fullscreen für ALLE Systeme)
-real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-REAL_W, REAL_H = real_screen.get_size()
 
-# 2. Virtuelle Zeichenfläche (16:9 Basis-Auflösung) für konsistentes UI-Rendering initialisieren
-sw, sh = 1280, 720
-screen = pygame.Surface((sw, sh)) # Sämtliche Zeichenoperationen erfolgen auf dieser virtuellen Surface.
+class DisplayManager:
+    def __init__(self):
+        pygame.mixer.pre_init(44100, -16, 2, 512)
+        pygame.init()
+        pygame.mouse.set_visible(False)
+        self._real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.real_w, self.real_h = self._real_screen.get_size()
+        self._virtual = pygame.Surface((VIRTUAL_W, VIRTUAL_H))
 
-clock = pygame.time.Clock()
+    @property
+    def virtual(self) -> pygame.Surface:
+        return self._virtual
 
-# --- LED Bridge starten (Hintergrund-Thread) ----------------------------------
-bridge = get_bridge()
-bridge.start()
+    @property
+    def size(self) -> tuple:
+        return VIRTUAL_W, VIRTUAL_H
 
-# Kurz warten, damit der Bridge-Thread hochfahren und Serial-Verbindung zum ESP32 aufbauen kann
-time.sleep(2.0)
+    def present(self) -> None:
+        scale = min(self.real_w / VIRTUAL_W, self.real_h / VIRTUAL_H)
+        w, h = int(VIRTUAL_W * scale), int(VIRTUAL_H * scale)
+        scaled = pygame.transform.scale(self._virtual, (w, h))
+        self._real_screen.fill((0, 0, 0))
+        self._real_screen.blit(scaled, ((self.real_w - w) // 2, (self.real_h - h) // 2))
+        pygame.display.flip()
 
-bridge.notify_game_stop()   # Attract-Modus beim Start aktivieren
+    def show_loading(self, title_font: pygame.font.Font) -> None:
+        self._virtual.fill(BG_COLOR)
+        txt = title_font.render("LOADING...", True, NEON_CYAN)
+        self._virtual.blit(txt, txt.get_rect(center=(VIRTUAL_W // 2, VIRTUAL_H // 2)))
+        self.present()
 
-logging.info(f"System-Info: {platform.system()} | Echter Monitor: {REAL_W}x{REAL_H} | Virtuell: {sw}x{sh}")
+    def reset_after_game(self, current_os: str) -> None:
+        if current_os == "Linux":
+            pygame.time.wait(200)
+            pygame.display.quit()
+            pygame.display.init()
+            pygame.mouse.set_visible(False)
+            self._real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        elif current_os == "Darwin":
+            self._real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        pygame.event.clear()
 
-# --- Laden der Assets & Typografie ---
-try:
-    font_path = get_path("assets/arcade.ttf")
-    title_font = pygame.font.Font(font_path, int(sh * 0.12))
-    menu_font = pygame.font.Font(font_path, int(sh * 0.05))
-    small_font = pygame.font.Font(font_path, int(sh * 0.02))
-except Exception as e:
-    logging.warning("Arcade-Font nicht gefunden, nutze System-Fallback: %s", e)
-    title_font = pygame.font.Font(None, int(sh * 0.12))
-    menu_font = pygame.font.Font(None, int(sh * 0.06))
-    small_font = pygame.font.Font(None, int(sh * 0.03))
 
-sprites = init_sprites(sh)
+class FontManager:
+    def __init__(self, sh: int):
+        try:
+            path = get_path("assets/arcade.ttf")
+            self.title = pygame.font.Font(path, int(sh * 0.12))
+            self.menu = pygame.font.Font(path, int(sh * 0.05))
+            self.small = pygame.font.Font(path, int(sh * 0.02))
+        except Exception as e:
+            logging.warning("Arcade-Font nicht gefunden, Fallback: %s", e)
+            self.title = pygame.font.Font(None, int(sh * 0.12))
+            self.menu = pygame.font.Font(None, int(sh * 0.06))
+            self.small = pygame.font.Font(None, int(sh * 0.03))
 
-# --- Initialisierung der visuellen Hintergrund-Effekte ---
-stars = [[random.randint(0, sw), random.randint(0, sh), random.randint(1, 3)] for _ in range(100)]
 
-bloom_grid_surf = pygame.Surface((sw, sh), pygame.SRCALPHA)
-for x in range(0, sw, int(sw*0.05)): 
-    pygame.draw.line(bloom_grid_surf, (0, 20, 50, 50), (x, 0), (x, sh), 2)
-for y in range(0, sh, int(sh*0.05)): 
-    pygame.draw.line(bloom_grid_surf, (0, 20, 50, 50), (0, y), (sw, y), 2)
+class ShipSprite:
+    def __init__(self, sw: int, sh: int):
+        self.sw, self.sh = sw, sh
+        self._speed = sw * 0.004
+        self._base_images = self._load_images(sh)
+        self._active = False
+        self._x = self._y = -1000.0
+        self._vx = self._vy = 0.0
+        self._rotated_frames: list = []
 
-scanline_surf = pygame.Surface((sw, sh + 10), pygame.SRCALPHA)
-for y in range(0, sh + 10, 6):
-    pygame.draw.line(scanline_surf, (0, 0, 0, 160), (0, y), (sw, y), 2)
+    @staticmethod
+    def _find_asset(name: str) -> str:
+        """Sucht Asset zuerst in assets/, dann im Launcher-Verzeichnis."""
+        in_assets = get_path(f"assets/{name}")
+        return in_assets if os.path.exists(in_assets) else get_path(name)
 
-def draw_scanlines(frame):
-    offset = (frame // 4) % 6
-    screen.blit(scanline_surf, (0, -offset))
+    @staticmethod
+    def _load_images(sh: int) -> list:
+        images = []
+        try:
+            idle_img = pygame.image.load(ShipSprite._find_asset("player-idle.png")).convert_alpha()
+            for filename in ["player-boost-default.png", "player-boost-left.png", "player-boost-right.png"]:
+                boost_img = pygame.image.load(ShipSprite._find_asset(filename)).convert_alpha()
+                combined = pygame.Surface(
+                    (max(idle_img.get_width(), boost_img.get_width()),
+                     idle_img.get_height() + boost_img.get_height()),
+                    pygame.SRCALPHA,
+                )
+                flame_y = idle_img.get_height() - 2
+                combined.blit(boost_img, ((combined.get_width() - boost_img.get_width()) // 2, flame_y))
+                combined.blit(idle_img, ((combined.get_width() - idle_img.get_width()) // 2, 0))
+                new_h = int(sh * 0.12)
+                new_w = int(combined.get_width() * (new_h / combined.get_height()))
+                images.append(pygame.transform.scale(combined, (new_w, new_h)))
+            if len(images) != 3:
+                return []
+        except Exception as e:
+            logging.warning("Schiff-Sprites konnten nicht geladen werden: %s", e)
+            return []
+        return images
 
-def draw_punk_underline(rect, frame):
-    num_blocks = 20
-    block_width = max(1, rect.width // num_blocks)
-    underline_y = rect.bottom + sh * 0.015
-    for i in range(num_blocks):
-        color = PUNK_COLORS[(i + (frame // 10)) % len(PUNK_COLORS)]
-        offset_y = math.sin(frame * 0.2 + i * 0.5) * (sh * 0.003)
-        block_rect = pygame.Rect(rect.left + i * block_width, underline_y + offset_y, block_width - 2, sh * 0.005)
-        pygame.draw.rect(screen, color, block_rect)
+    def update(self) -> None:
+        if not self._base_images:
+            return
+        if not self._active:
+            self._spawn()
+            return
+        self._x += self._vx
+        self._y += self._vy
+        if self._x < -300 or self._x > self.sw + 300 or self._y < -300 or self._y > self.sh + 300:
+            self._active = False
 
-# --- Ladelogik: Animiertes Hintergrund-Sprite (Asteroids-Schiff) ---
-base_ship_images = []
-ship_loaded = False
-ship_active = False
-ship_x, ship_y = -1000, -1000
-ship_vx, ship_vy = 0, 0
-ship_speed = sw * 0.004
-ship_rotated_frames = []
+    def _spawn(self) -> None:
+        side = random.choice(['top', 'right', 'bottom', 'left'])
+        if side == 'top':
+            self._x, self._y = float(random.randint(0, self.sw)), -200.0
+            tx, ty = float(random.randint(0, self.sw)), self.sh + 200.0
+        elif side == 'bottom':
+            self._x, self._y = float(random.randint(0, self.sw)), self.sh + 200.0
+            tx, ty = float(random.randint(0, self.sw)), -200.0
+        elif side == 'left':
+            self._x, self._y = -200.0, float(random.randint(0, self.sh))
+            tx, ty = self.sw + 200.0, float(random.randint(0, self.sh))
+        else:
+            self._x, self._y = self.sw + 200.0, float(random.randint(0, self.sh))
+            tx, ty = -200.0, float(random.randint(0, self.sh))
 
-try:
-    idle_path = get_path("assets/player-idle.png") if os.path.exists(get_path("assets/player-idle.png")) else get_path("player-idle.png")
-    idle_img = pygame.image.load(idle_path).convert_alpha()
-    for filename in ["player-boost-default.png", "player-boost-left.png", "player-boost-right.png"]:
-        p = get_path(f"assets/{filename}") if os.path.exists(get_path(f"assets/{filename}")) else get_path(filename)
-        b_img = pygame.image.load(p).convert_alpha()
-        
-        combined = pygame.Surface((max(idle_img.get_width(), b_img.get_width()), idle_img.get_height() + b_img.get_height()), pygame.SRCALPHA)
-        flame_y = idle_img.get_height() - 2
-        combined.blit(b_img, ((combined.get_width() - b_img.get_width()) // 2, flame_y))
-        combined.blit(idle_img, ((combined.get_width() - idle_img.get_width()) // 2, 0))
-        
-        new_h = int(sh * 0.12)
-        new_w = int(combined.get_width() * (new_h / combined.get_height()))
-        base_ship_images.append(pygame.transform.scale(combined, (new_w, new_h)))
-        
-    if len(base_ship_images) == 3: 
-        ship_loaded = True
-except Exception as e:
-    logging.warning("Schiff-Sprites konnten nicht geladen werden: %s", e)
+        dx, dy = tx - self._x, ty - self._y
+        dist = math.hypot(dx, dy)
+        self._vx, self._vy = ((dx / dist) * self._speed, (dy / dist) * self._speed) if dist else (self._speed, 0.0)
+        angle = math.degrees(math.atan2(-dy, dx)) - 90
+        self._rotated_frames = [pygame.transform.rotate(img, angle) for img in self._base_images]
+        self._active = True
 
-# --- Hauptschleife (Main Loop) Setup ---
-selected_index = 0
+    def draw(self, surface: pygame.Surface, frame: int) -> None:
+        if not self._active or not self._rotated_frames:
+            return
+        img = self._rotated_frames[(frame // 5) % 3]
+        surface.blit(img, img.get_rect(center=(int(self._x), int(self._y))))
 
-prev_selected_index = -1   # LED: Selektionsänderung erkennen
-error_message = ""
-frame_counter = 0
-running_pac_x = -200
-running = True
 
-# Initiale LED-Selektion setzen sobald Spiele geladen sind
-if games:
-    bridge.notify_selection_changed(games[selected_index].get("name", ""))
+class BackgroundScene:
+    def __init__(self, sw: int, sh: int):
+        self.sw, self.sh = sw, sh
+        self._stars = [[random.randint(0, sw), random.randint(0, sh), random.randint(1, 3)] for _ in range(100)]
+        self._bloom_grid = self._build_bloom_grid(sw, sh)
+        self._scanlines = self._build_scanlines(sw, sh)
+        self._ship = ShipSprite(sw, sh)
 
-aktuelles_os = platform.system()
+    @staticmethod
+    def _build_bloom_grid(sw: int, sh: int) -> pygame.Surface:
+        surf = pygame.Surface((sw, sh), pygame.SRCALPHA)
+        for x in range(0, sw, int(sw * 0.05)):
+            pygame.draw.line(surf, (0, 20, 50, 50), (x, 0), (x, sh), 2)
+        for y in range(0, sh, int(sh * 0.05)):
+            pygame.draw.line(surf, (0, 20, 50, 50), (0, y), (sw, y), 2)
+        return surf
 
-while running:
-    frame_counter += 1
+    @staticmethod
+    def _build_scanlines(sw: int, sh: int) -> pygame.Surface:
+        surf = pygame.Surface((sw, sh + 10), pygame.SRCALPHA)
+        for y in range(0, sh + 10, 6):
+            pygame.draw.line(surf, (0, 0, 0, 160), (0, y), (sw, y), 2)
+        return surf
 
-    # --- Ereignisverarbeitung (Event Handling) ---
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT: 
-            logging.info("Beenden durch User (QUIT Event).")
-            running = False
-        
-        if event.type == pygame.KEYDOWN:
-            error_message = ""
-            if not games:
-                if event.key == pygame.K_ESCAPE: 
-                    running = False
+    def update(self) -> None:
+        for star in self._stars:
+            star[1] += star[2]
+            if star[1] > self.sh:
+                star[1], star[0] = 0, random.randint(0, self.sw)
+        self._ship.update()
+
+    def draw(self, surface: pygame.Surface, frame: int) -> None:
+        surface.blit(self._bloom_grid, (0, 0))
+        for star in self._stars:
+            color = (150, 150, 150) if star[2] == 1 else WHITE
+            pygame.draw.rect(surface, color, (star[0], star[1], star[2], star[2]))
+        self._ship.draw(surface, frame)
+
+    def draw_scanlines(self, surface: pygame.Surface, frame: int) -> None:
+        surface.blit(self._scanlines, (0, -((frame // 4) % 6)))
+
+
+class TitleRenderer:
+    def __init__(self, sw: int, sh: int, font: pygame.font.Font):
+        self.sw, self.sh = sw, sh
+        self._font = font
+
+    def draw(self, surface: pygame.Surface, frame: int) -> None:
+        glow_y = math.sin(frame * 0.05) * (self.sh * 0.01)
+        shift_x = math.sin(frame * 0.1) * (self.sw * 0.005)
+        t_rect = self._font.render("DIGITS ARCADE", True, WHITE).get_rect(
+            center=(self.sw // 2, int(self.sh * 0.15))
+        )
+        surface.blit(self._font.render("DIGITS ARCADE", True, (80, 0, 0)),
+                     t_rect.move(int(-6 - shift_x), int(6 + glow_y)))
+        surface.blit(self._font.render("DIGITS ARCADE", True, (0, 100, 100)),
+                     t_rect.move(int(6 + shift_x), int(-6 + glow_y)))
+        surface.blit(self._font.render("DIGITS ARCADE", True, WHITE),
+                     t_rect.move(0, int(glow_y)))
+        self._draw_punk_underline(surface, t_rect, frame)
+
+    def _draw_punk_underline(self, surface: pygame.Surface, rect: pygame.Rect, frame: int) -> None:
+        num_blocks = 20
+        block_width = max(1, rect.width // num_blocks)
+        underline_y = rect.bottom + self.sh * 0.015
+        for i in range(num_blocks):
+            color = PUNK_COLORS[(i + (frame // 10)) % len(PUNK_COLORS)]
+            offset_y = math.sin(frame * 0.2 + i * 0.5) * (self.sh * 0.003)
+            pygame.draw.rect(
+                surface, color,
+                pygame.Rect(rect.left + i * block_width, underline_y + offset_y, block_width - 2, self.sh * 0.005)
+            )
+
+
+class MenuView:
+    def __init__(self, sw: int, sh: int, fonts: FontManager, sprites: dict):
+        self.sw, self.sh = sw, sh
+        self._fonts = fonts
+        self._sprites = sprites
+        self._pac_x = -200.0
+
+    def update(self) -> None:
+        self._pac_x += 4
+        if self._pac_x > self.sw + 500:
+            self._pac_x = -200.0
+
+    def draw(self, surface: pygame.Surface, games: list, selected: int, error: str, frame: int) -> None:
+        fast = (frame // 15) % 2 == 0
+        slow = (frame // 25) % 2 == 0
+
+        if not games:
+            surf = self._fonts.menu.render("games.json FEHLT", True, RED)
+            surface.blit(surf, surf.get_rect(center=(self.sw // 2, int(self.sh * 0.5))))
+        else:
+            for i, game in enumerate(games):
+                self._draw_item(surface, game, i, i == selected, frame, fast, slow)
+
+        self._draw_bottom_animation(surface, fast)
+
+        if (frame // 20) % 2 == 0:
+            f_surf = self._fonts.small.render("PRESS BUTTON TO START", True, NEON_PINK)
+            surface.blit(f_surf, (int(self.sw // 2 - f_surf.get_width() // 2), int(self.sh * 0.96)))
+
+        if error:
+            e_surf = self._fonts.small.render(error, True, RED)
+            surface.blit(e_surf, (int(self.sw // 2 - e_surf.get_width() // 2), int(self.sh * 0.82)))
+
+    def _draw_item(self, surface: pygame.Surface, game: dict, index: int,
+                   selected: bool, frame: int, fast: bool, slow: bool) -> None:
+        display = game.get('display_name', game.get('name', 'Unbekannt'))
+        name    = game.get('name', '')
+        wx = math.sin(frame * 0.1) * 8 if selected else 0
+        wy = math.cos(frame * 0.1) * 2 if selected else 0
+        m_rect = self._fonts.menu.render(display, True, WHITE).get_rect(
+            center=(int(self.sw // 2 + wx), int(self.sh * 0.48 + index * self.sh * 0.12 + wy))
+        )
+        if selected:
+            for off in [2, -2]:
+                surface.blit(self._fonts.menu.render(display, True, (100, 100, 0)), m_rect.move(off, off))
+            surface.blit(self._fonts.menu.render(display, True, NEON_YELLOW), m_rect)
+            self._draw_selection_sprites(surface, name, m_rect, frame, fast, slow)
+        else:
+            surface.blit(self._fonts.menu.render(display, True, (120, 120, 150)), m_rect)
+
+    def _draw_selection_sprites(self, surface: pygame.Surface, name: str,
+                                 m_rect: pygame.Rect, frame: int, fast: bool, slow: bool) -> None:
+        padding = self.sw * 0.03
+        drx = math.sin(frame * 0.05) * (self.sw * 0.015)
+        sl_x = m_rect.left - self._sprites['pac_open'].get_width() - padding + drx
+        sr_x = m_rect.right + padding + drx
+        sy = m_rect.centery - (self._sprites['pac_open'].get_height() // 2)
+
+        name_upper = name.upper()
+        if "SPACE" in name_upper:
+            s_l = self._sprites['invader1_a'] if slow else self._sprites['invader1_b']
+            s_r = self._sprites['invader2_a'] if fast else self._sprites['invader2_b']
+        elif "ASTEROID" in name_upper:
+            s_l = self._sprites['ast_ship_thrust'] if fast else self._sprites['ast_ship']
+            s_r = self._sprites['asteroid1'] if slow else self._sprites['asteroid2']
+        else:
+            s_l = self._sprites['pac_open'] if fast else self._sprites['pac_closed']
+            s_r = self._sprites['ghost_red']
+
+        surface.blit(s_l, (int(sl_x), int(sy)))
+        surface.blit(s_r, (int(sr_x), int(sy)))
+
+    def _draw_bottom_animation(self, surface: pygame.Surface, fast: bool) -> None:
+        y = int(self.sh * 0.85)
+        off = int(self._sprites['ghost_red'].get_width() * 2.5)
+        x = int(self._pac_x)
+        surface.blit(self._sprites['pac_open'] if fast else self._sprites['pac_closed'], (x, y))
+        surface.blit(self._sprites['ghost_cyan'], (x - off, y))
+        surface.blit(self._sprites['ghost_red'], (x - off * 2, y))
+
+
+class MusicPlayer:
+    _CANDIDATES = ["assets/arcade-music-loop.mp3", "assets/arcade-music-loop.wav",]
+
+    def __init__(self, volume: float = 0.3) -> None:
+        self._available = False
+        for rel in self._CANDIDATES:
+            path = get_path(rel)
+            if not os.path.exists(path):
                 continue
-            
-            if event.key == pygame.K_w:
-                selected_index = (selected_index - 1) % len(games)
-                bridge.notify_selection_changed(games[selected_index].get("name", ""))
-            elif event.key == pygame.K_s:
-                selected_index = (selected_index + 1) % len(games)
-                bridge.notify_selection_changed(games[selected_index].get("name", ""))
-            
-            # --- ECHTEN SPIELSTART TRIGGERN ---
-            elif event.key == pygame.K_SPACE:
-                game = games[selected_index]
-                game_name = game.get("name", "Unbekanntes Spiel")
-                p_dict = game.get("paths", {})
-                
-                logging.info(f"Start-Versuch: {game_name} auf OS: {aktuelles_os}")
-                
-                if aktuelles_os in p_dict:
-                    exe_p = p_dict[aktuelles_os]
-                    
-                    if os.path.exists(exe_p):
-                        try:
-                            game_dir = os.path.dirname(exe_p)
+            try:
+                pygame.mixer.music.load(path)
+                pygame.mixer.music.set_volume(volume)
+                self._available = True
+                logging.info("Hintergrundmusik geladen: %s", path)
+                break
+            except Exception as e:
+                logging.warning("Musikdatei nicht ladbar (%s): %s", path, e)
+        if not self._available:
+            logging.info("Keine Musikdatei gefunden — Hintergrundmusik deaktiviert.")
 
-                            # --- 1. PYINSTALLER ENVIRONMENT CLEANUP ---
-                            clean_env = os.environ.copy()
-                            vars_to_remove = [
-                                'LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONHOME', 'PYTHONPATH', 
-                                '_MEIPASS', '_MEIPASS2'
-                            ]
-                            for k in list(clean_env.keys()):
-                                if k.startswith('_PYI_') or k in vars_to_remove:
-                                    clean_env.pop(k, None)
-                                
-                            if hasattr(sys, '_MEIPASS'):
-                                mei_path = os.path.normcase(sys._MEIPASS) 
-                                current_path = clean_env.get('PATH', '')
-                                clean_paths = [
-                                    p for p in current_path.split(os.pathsep) 
-                                    if mei_path not in os.path.normcase(p)
-                                ]
-                                clean_env['PATH'] = os.pathsep.join(clean_paths)
+    def play(self) -> None:
+        if not self._available:
+            return
+        try:
+            pygame.mixer.music.play(-1)
+        except Exception as e:
+            logging.warning("Musik-Wiedergabe fehlgeschlagen: %s", e)
 
-                            if aktuelles_os in ["Linux", "Darwin"]:
-                                try: os.chmod(exe_p, os.stat(exe_p).st_mode | 0o111)
-                                except Exception as e: logging.warning(f"Konnte chmod nicht setzen: {e}")
+    def stop(self) -> None:
+        if not self._available:
+            return
+        try:
+            pygame.mixer.music.stop()
+        except Exception:
+            pass
 
-                            # --- 2. LADEBILDSCHIRM ANZEIGEN ---
-                            screen.fill(BG_COLOR)
-                            l_txt = title_font.render("LOADING...", True, NEON_CYAN)
-                            screen.blit(l_txt, l_txt.get_rect(center=(sw//2, sh//2)))
-                            
-                            scale_f = min(REAL_W / sw, REAL_H / sh)
-                            temp_scaled = pygame.transform.scale(screen, (int(sw * scale_f), int(sh * scale_f)))
-                            real_screen.fill((0, 0, 0))
-                            real_screen.blit(temp_scaled, ((REAL_W - temp_scaled.get_width()) // 2, (REAL_H - temp_scaled.get_height()) // 2))
-                            pygame.display.flip()
-                            
-                            if aktuelles_os == "Darwin": pygame.display.iconify()
-                            
-                            # --- 3. PROZESS STARTEN ---
 
-                            # --- LED: Spiel-Start-Effekt ---
-                            bridge.notify_game_start(game_name)
+class GameLaunchError(Exception):
+    pass
 
-                            # --- SPIEL STARTEN ---
-                            if aktuelles_os == "Darwin" and exe_p.endswith(".app"):
-                                process = subprocess.Popen(["open", "-W", exe_p], cwd=game_dir, env=clean_env)
-                            else:
-                                process = subprocess.Popen([exe_p], cwd=game_dir, env=clean_env)
 
-                            logging.info(f"Spiel läuft im Vordergrund.")
-                            
-                            # Blockierende Überwachungsschleife: Wartet, bis das Spiel geschlossen wird
+class GameRunner:
+    def __init__(self, bridge, display: DisplayManager, title_font: pygame.font.Font):
+        self._bridge = bridge
+        self._display = display
+        self._title_font = title_font
+        self._current_os = platform.system()
 
-                            # Blockierende Überwachungsschleife: Prüft periodisch den Prozessstatus
-                            while True:
-                                if process.poll() is not None:
-                                    logging.info(f"Erfolgreich beendet: {game_name}")
-                                    
-                                    bridge.notify_game_stop()
-                                    break
-                                    
-                                # WICHTIG: Sagt dem OS, dass das Fenster noch "lebt", und leert angestaute Events (verhindert das Einfrieren)
-                                pygame.event.pump()
-                                pygame.event.clear()
-                                
-                                pygame.time.wait(1000) # Polling-Intervall (1 Sekunde)
+    def launch(self, game: dict) -> None:
+        game_name = game.get("name", "Unbekanntes Spiel")
+        exe_path = game.get("paths", {}).get(self._current_os)
 
-                            # --- OS-Workaround: Fenster-Fokus (Linux & Mac) ---
-                            if aktuelles_os == "Linux":
-                                logging.info("Linux: Führe Display-Reset durch, um Fokus zurückzuholen.")
-                                pygame.time.wait(200)
-                                pygame.display.quit()
-                                pygame.display.init()
-                                pygame.mouse.set_visible(False)
-                                real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-                            elif aktuelles_os == "Darwin":
-                                real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-                                
-                            pygame.event.clear()
+        if not exe_path:
+            raise GameLaunchError("OS NOT SUPPORTED")
+        if not os.path.exists(exe_path):
+            raise GameLaunchError("EXECUTABLE NOT FOUND")
 
-                        except Exception as e:
-                            logging.error(f"UNERWARTETER FEHLER beim Start von {game_name}: {e}")
-                            error_message = f"ERROR: {str(e)[:25]}"
-                            bridge.notify_game_stop()
-                    else:
-                        error_message = "EXECUTABLE NOT FOUND"
-                else:
-                    error_message = "OS NOT SUPPORTED"
-            
-            elif event.key == pygame.K_ESCAPE: 
-                running = False
+        env = self._build_clean_env(exe_path)
+        self._display.show_loading(self._title_font)
 
-    # --- Aktualisierung der Spiel- und Animationslogik ---
-    for star in stars:
-        star[1] += star[2]
-        if star[1] > sh:
-            star[1], star[0] = 0, random.randint(0, sw)
+        if self._current_os == "Darwin":
+            pygame.display.iconify()
 
-    running_pac_x += 4
-    if running_pac_x > sw + 500:
-        running_pac_x = -200
+        self._bridge.notify_game_start(game_name)
+        try:
+            process = self._start_process(exe_path, env)
+            logging.info("Spiel '%s' läuft.", game_name)
+            self._wait_for_process(process)
+        except Exception:
+            self._bridge.notify_game_stop()
+            raise
 
-    anim_toggle_fast = (frame_counter // 15) % 2 == 0
-    anim_toggle_slow = (frame_counter // 25) % 2 == 0
+        logging.info("Spiel '%s' beendet.", game_name)
+        self._bridge.notify_game_stop()
+        self._display.reset_after_game(self._current_os)
 
-    # --- Rendern der Szene (Virtuelle Surface) ---
-    screen.fill(BG_COLOR)
-    screen.blit(bloom_grid_surf, (0, 0))
+    def _build_clean_env(self, exe_path: str) -> dict:
+        env = os.environ.copy()
+        remove = {'LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONHOME', 'PYTHONPATH', '_MEIPASS', '_MEIPASS2'}
+        for key in [k for k in env if k.startswith('_PYI_') or k in remove]:
+            env.pop(key, None)
+        if hasattr(sys, '_MEIPASS'):
+            mei = os.path.normcase(sys._MEIPASS)
+            env['PATH'] = os.pathsep.join(
+                p for p in env.get('PATH', '').split(os.pathsep)
+                if mei not in os.path.normcase(p)
+            )
+        if self._current_os in ("Linux", "Darwin"):
+            try:
+                os.chmod(exe_path, os.stat(exe_path).st_mode | 0o111)
+            except Exception as e:
+                logging.warning("chmod fehlgeschlagen: %s", e)
+        return env
 
-    for star in stars:
-        color = (150,150,150) if star[2] == 1 else WHITE
-        pygame.draw.rect(screen, color, (star[0], star[1], star[2], star[2]))
+    def _start_process(self, exe_path: str, env: dict) -> subprocess.Popen:
+        game_dir = os.path.dirname(exe_path)
+        if self._current_os == "Darwin" and exe_path.endswith(".app"):
+            return subprocess.Popen(["open", "-W", exe_path], cwd=game_dir, env=env)
+        return subprocess.Popen([exe_path], cwd=game_dir, env=env)
 
-    if ship_loaded:
-        if not ship_active:
-            side = random.choice(['top', 'right', 'bottom', 'left'])
-            if side == 'top':
-                ship_x, ship_y = random.randint(0, sw), -200
-                target_x, target_y = random.randint(0, sw), sh + 200
-            elif side == 'bottom':
-                ship_x, ship_y = random.randint(0, sw), sh + 200
-                target_x, target_y = random.randint(0, sw), -200
-            elif side == 'left':
-                ship_x, ship_y = -200, random.randint(0, sh)
-                target_x, target_y = sw + 200, random.randint(0, sh)
-            else:
-                ship_x, ship_y = sw + 200, random.randint(0, sh)
-                target_x, target_y = -200, random.randint(0, sh)
+    @staticmethod
+    def _wait_for_process(process: subprocess.Popen) -> None:
+        while process.poll() is None:
+            pygame.event.pump()
+            pygame.event.clear()
+            pygame.time.wait(1000)
 
-            dx = target_x - ship_x
-            dy = target_y - ship_y
-            dist = math.hypot(dx, dy)
-            if dist != 0:
-                ship_vx = (dx / dist) * ship_speed
-                ship_vy = (dy / dist) * ship_speed
-            else:
-                ship_vx, ship_vy = ship_speed, 0
 
-            angle = math.degrees(math.atan2(-dy, dx)) - 90
-            ship_rotated_frames = [pygame.transform.rotate(img, angle) for img in base_ship_images]
-            ship_active = True
+class ArcadeLauncher:
+    def __init__(self):
+        self._display = DisplayManager()
+        sw, sh = self._display.size
+        self._fonts = FontManager(sh)
+        self._sprites = init_sprites(sh)
+        self._bridge = self._init_bridge()
+        self._background = BackgroundScene(sw, sh)
+        self._title = TitleRenderer(sw, sh, self._fonts.title)
+        self._menu = MenuView(sw, sh, self._fonts, self._sprites)
+        self._runner = GameRunner(self._bridge, self._display, self._fonts.title)
+        self._music = MusicPlayer()
+        self._games = games
+        self._selected = 0
+        self._error = ""
+        self._frame = 0
+        self._clock = pygame.time.Clock()
 
-        ship_x += ship_vx
-        ship_y += ship_vy
+        logging.info("System: %s | Display: %dx%d → virtuell %dx%d",
+                     platform.system(), self._display.real_w, self._display.real_h, sw, sh)
 
-        if ship_x < -300 or ship_x > sw + 300 or ship_y < -300 or ship_y > sh + 300:
-            ship_active = False
+        if self._games:
+            self._bridge.notify_selection_changed(self._games[self._selected].get("name", ""))
+        self._music.play()
 
-        if ship_active:
-            boost_index = (frame_counter // 5) % 3
-            current_ship = ship_rotated_frames[boost_index]
-            ship_rect = current_ship.get_rect(center=(int(ship_x), int(ship_y)))
-            screen.blit(current_ship, ship_rect)
+    @staticmethod
+    def _init_bridge():
+        bridge = get_bridge()
+        bridge.start()
+        time.sleep(2.0)
+        bridge.notify_game_stop()
+        return bridge
 
-    glow_y = math.sin(frame_counter * 0.05) * (sh * 0.01)
-    shift_x = math.sin(frame_counter * 0.1) * (sw * 0.005)
-    t_rect = title_font.render("DIGITS ARCADE", True, WHITE).get_rect(center=(sw//2, int(sh*0.15)))
-    
-    screen.blit(title_font.render("DIGITS ARCADE", True, (80, 0, 0)), t_rect.move(int(-6 - shift_x), int(6 + glow_y)))
-    screen.blit(title_font.render("DIGITS ARCADE", True, (0, 100, 100)), t_rect.move(int(6 + shift_x), int(-6 + glow_y)))
-    screen.blit(title_font.render("DIGITS ARCADE", True, WHITE), t_rect.move(0, int(glow_y)))
-    draw_punk_underline(t_rect, frame_counter)
+    def run(self) -> None:
+        running = True
+        while running:
+            self._frame += 1
+            running = self._handle_events()
+            self._update()
+            self._render()
+            self._clock.tick(60)
+        self._shutdown()
 
-    if not games:
-        err_surf = menu_font.render("games.json FEHLT", True, RED)
-        screen.blit(err_surf, err_surf.get_rect(center=(sw//2, int(sh*0.5))))
-    else:
-        for i, game in enumerate(games):
-            sel = (i == selected_index)
-            txt = game.get('name', 'Unbekannt')
-            
-            wx = math.sin(frame_counter*0.1)*8 if sel else 0
-            wy = math.cos(frame_counter*0.1)*2 if sel else 0
-            m_rect = menu_font.render(txt, True, WHITE).get_rect(center=(int(sw//2 + wx), int(sh*0.48 + i*sh*0.12 + wy)))
-            
-            if sel:
-                for off in [2, -2]:
-                    shadow_surf = menu_font.render(txt, True, (100, 100, 0))
-                    screen.blit(shadow_surf, m_rect.move(off, off))
-                    
-                screen.blit(menu_font.render(txt, True, NEON_YELLOW), m_rect)
-                
-                padding = sw * 0.03
-                drx = math.sin(frame_counter * 0.05) * (sw * 0.015)
-                sl_x = m_rect.left - sprites['pac_open'].get_width() - padding + drx
-                sr_x = m_rect.right + padding + drx
-                sy = m_rect.centery - (sprites['pac_open'].get_height() // 2)
-                
-                if "SPACE" in txt.upper():
-                    s_l, s_r = (sprites['invader1_a'] if anim_toggle_slow else sprites['invader1_b']), (sprites['invader2_a'] if anim_toggle_fast else sprites['invader2_b'])
-                elif "ASTEROID" in txt.upper():
-                    s_l, s_r = (sprites['ast_ship_thrust'] if anim_toggle_fast else sprites['ast_ship']), (sprites['asteroid1'] if anim_toggle_slow else sprites['asteroid2'])
-                else:
-                    s_l, s_r = (sprites['pac_open'] if anim_toggle_fast else sprites['pac_closed']), sprites['ghost_red']
-                    
-                screen.blit(s_l, (int(sl_x), int(sy)))
-                screen.blit(s_r, (int(sr_x), int(sy)))
-            else:
-                screen.blit(menu_font.render(txt, True, (120, 120, 150)), m_rect)
+    def _handle_events(self) -> bool:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN:
+                if not self._handle_keydown(event.key):
+                    return False
+        return True
 
-    y_btm = sh * 0.85
-    off_btm = int(sprites['ghost_red'].get_width() * 2.5)
-    screen.blit(sprites['pac_open'] if anim_toggle_fast else sprites['pac_closed'], (int(running_pac_x), int(y_btm)))
-    screen.blit(sprites['ghost_cyan'], (int(running_pac_x - off_btm), int(y_btm)))
-    screen.blit(sprites['ghost_red'], (int(running_pac_x - (off_btm * 2)), int(y_btm)))
+    def _handle_keydown(self, key: int) -> bool:
+        self._error = ""
+        if key == pygame.K_ESCAPE:
+            return False
+        if not self._games:
+            return True
+        if key == pygame.K_w:
+            self._select(self._selected - 1)
+        elif key == pygame.K_s:
+            self._select(self._selected + 1)
+        elif key == pygame.K_SPACE:
+            self._launch_selected()
+        return True
 
-    if (frame_counter // 20) % 2 == 0:
-        f_surf = small_font.render("PRESS BUTTON TO START", True, NEON_PINK)
-        screen.blit(f_surf, (int(sw//2 - f_surf.get_width()//2), int(sh*0.96)))
+    def _select(self, index: int) -> None:
+        self._selected = index % len(self._games)
+        self._bridge.notify_selection_changed(self._games[self._selected].get("name", ""))
 
-    if error_message:
-        e_surf = small_font.render(error_message, True, RED)
-        screen.blit(e_surf, (int(sw//2 - e_surf.get_width()//2), int(sh*0.82)))
+    def _launch_selected(self) -> None:
+        self._music.stop()
+        try:
+            self._runner.launch(self._games[self._selected])
+        except GameLaunchError as e:
+            self._error = str(e)
+        except Exception as e:
+            logging.error("Unerwarteter Fehler beim Spielstart: %s", e)
+            self._error = f"ERROR: {str(e)[:25]}"
+        finally:
+            self._music.play()
 
-    draw_scanlines(frame_counter)
+    def _update(self) -> None:
+        self._background.update()
+        self._menu.update()
 
-    # --- Finales Rendering: Letterboxing & Skalierung ---
-    scale_factor = min(REAL_W / sw, REAL_H / sh)
-    new_w = int(sw * scale_factor)
-    new_h = int(sh * scale_factor)
-    
-    scaled_screen = pygame.transform.scale(screen, (new_w, new_h))
-    x_offset = (REAL_W - new_w) // 2
-    y_offset = (REAL_H - new_h) // 2
-    
-    real_screen.fill((0, 0, 0))
-    real_screen.blit(scaled_screen, (x_offset, y_offset))
+    def _render(self) -> None:
+        surface = self._display.virtual
+        surface.fill(BG_COLOR)
+        self._background.draw(surface, self._frame)
+        self._title.draw(surface, self._frame)
+        self._menu.draw(surface, self._games, self._selected, self._error, self._frame)
+        self._background.draw_scanlines(surface, self._frame)
+        self._display.present()
 
-    pygame.display.flip()
-    clock.tick(60)
+    def _shutdown(self) -> None:
+        logging.info("=== LAUNCHER WIRD BEENDET ===")
+        self._music.stop()
+        self._bridge.notify_launcher_exit()
+        pygame.quit()
+        sys.exit()
 
-logging.info("=== LAUNCHER WIRD BEENDET ===")
-bridge.notify_launcher_exit()   # Power-Down-Animation → alle LEDs aus
-pygame.quit()
-sys.exit()
+
+if __name__ == "__main__":
+    ArcadeLauncher().run()
