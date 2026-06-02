@@ -89,14 +89,4 @@ class LedController:
             except Exception as e:
                 logger.warning("[LED-Controller] Threadsafe-Fehler beim Queueing: %s", e)
 
-    # ─── LAUNCHER EVENTS ───
-
-    def effect_start_pacman(self):
-        self.send_effect(chain="A", effect_type="scanner", segment=99, r=0, g=255, b=0, speed=50, length=8, repeat=-1, priority=1, event_key="start_pacman")
-
-    def effect_start_space_invaders(self):
-        self.send_effect(chain="A", effect_type="scanner", segment=99, r=0, g=0, b=255, speed=50, length=8, repeat=-1, priority=1, event_key="start_si")
-
-    def effect_start_asteroids(self):
-        self.send_effect(chain="A", effect_type="scanner", segment=99, r=255, g=0, b=255, speed=50, length=8, repeat=-1, priority=1, event_key="start_asteroids")
 

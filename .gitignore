@@ -16,3 +16,9 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+# Claude Code lokale Einstellungen
+.claude/
+
+# Game Konfiguration für lokale entwicklung
+games.json.dev

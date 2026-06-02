@@ -7,8 +7,6 @@ import math
 import random
 import logging
 import time
-from LedController import LedController
-
 from config import *
 from assets import init_sprites
 from led_bridge import get_bridge
@@ -38,12 +36,6 @@ bridge.start()
 
 # Kurz warten, damit der Bridge-Thread hochfahren und Serial-Verbindung zum ESP32 aufbauen kann
 time.sleep(2.0)
-
-# --- LED Controller Initialisierung & Aktivierung ---
-led = LedController()
-
-# Verbindungsaufbau des Controllers zur Bridge abwarten
-time.sleep(1.0)
 
 bridge.notify_game_stop()   # Attract-Modus beim Start aktivieren
 
@@ -122,6 +114,7 @@ except Exception as e:
 
 # --- Hauptschleife (Main Loop) Setup ---
 selected_index = 0
+
 prev_selected_index = -1   # LED: Selektionsänderung erkennen
 error_message = ""
 frame_counter = 0
@@ -130,7 +123,7 @@ running = True
 
 # Initiale LED-Selektion setzen sobald Spiele geladen sind
 if games:
-    bridge.notify_selection_changed(games[0].get("display_name", ""))
+    bridge.notify_selection_changed(games[selected_index].get("name", ""))
 
 aktuelles_os = platform.system()
 
@@ -150,18 +143,17 @@ while running:
                     running = False
                 continue
             
-            # Navigation mit LED-Feedback (Kurzer Cyan-Blink)
-            if event.key == pygame.K_w: 
+            if event.key == pygame.K_w:
                 selected_index = (selected_index - 1) % len(games)
-                led.send_effect(chain="A", effect_type="blink", segment=99, r=0, g=230, b=255, speed=80, repeat=1, priority=2, event_key="menu_scroll")
-            elif event.key == pygame.K_s: 
+                bridge.notify_selection_changed(games[selected_index].get("name", ""))
+            elif event.key == pygame.K_s:
                 selected_index = (selected_index + 1) % len(games)
-                led.send_effect(chain="A", effect_type="blink", segment=99, r=0, g=230, b=255, speed=80, repeat=1, priority=2, event_key="menu_scroll")
+                bridge.notify_selection_changed(games[selected_index].get("name", ""))
             
             # --- ECHTEN SPIELSTART TRIGGERN ---
             elif event.key == pygame.K_SPACE:
                 game = games[selected_index]
-                game_name = game.get("display_name", "Unbekanntes Spiel")
+                game_name = game.get("name", "Unbekanntes Spiel")
                 p_dict = game.get("paths", {})
                 
                 logging.info(f"Start-Versuch: {game_name} auf OS: {aktuelles_os}")
@@ -173,14 +165,6 @@ while running:
                         try:
                             game_dir = os.path.dirname(exe_p)
 
-                            game_identifier = game_name.upper()
-                            if "SPACE" in game_identifier:
-                                led.effect_start_space_invaders()  # Grüner Matrix-Wipe
-                            elif "ASTEROID" in game_identifier:
-                                led.effect_start_asteroids()       # Weißer, kühler Puls
-                            else:
-                                led.effect_start_pacman()          # Gelber Chase/Lauflicht-Effekt
-                            
                             # --- 1. PYINSTALLER ENVIRONMENT CLEANUP ---
                             clean_env = os.environ.copy()
                             vars_to_remove = [
@@ -348,7 +332,7 @@ while running:
     else:
         for i, game in enumerate(games):
             sel = (i == selected_index)
-            txt = game.get('display_name', 'Unbekannt')
+            txt = game.get('name', 'Unbekannt')
             
             wx = math.sin(frame_counter*0.1)*8 if sel else 0
             wy = math.cos(frame_counter*0.1)*2 if sel else 0
@@ -412,6 +396,5 @@ while running:
 
 logging.info("=== LAUNCHER WIRD BEENDET ===")
 bridge.notify_launcher_exit()   # Power-Down-Animation → alle LEDs aus
-led.stop()
 pygame.quit()
 sys.exit()

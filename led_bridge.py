@@ -14,11 +14,8 @@ Architektur:
                 └── Space Invaders (Python)
 
 Kette A (Spieler-nah):
-  marquee=0 | monitor_right=1 | monitor_bottom=2
-  monitor_left=3 | monitor_top=4 | control_panel=5 | alle=99
-
-Kette B (Ambient/Gehäuse):
-  side_left=0 | bottom=1 | side_right=2 | alle=99
+  marquee=0 | monitor_top=1 | monitor_right=2
+  monitor_bottom=3 | monitor_left=4 | control_panel=5 | alle=99
 """
 
 import asyncio
@@ -27,70 +24,91 @@ import logging
 import os
 import threading
 import time
-from typing import Dict, List, Optional, Set, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 try:
     import serial
     import serial.tools.list_ports
-    _SERIAL_OK = True
+    _SERIAL_AVAILABLE = True
 except ImportError:
-    _SERIAL_OK = False
+    _SERIAL_AVAILABLE = False
     logging.warning("LED: pyserial nicht installiert — Hardware-LEDs deaktiviert.")
 
 try:
     import websockets
-    _WS_OK = True
+    _WS_AVAILABLE = True
 except ImportError:
-    _WS_OK = False
+    _WS_AVAILABLE = False
     logging.warning("LED: websockets nicht installiert — Spiel-LED-Integration deaktiviert.")
 
 logger = logging.getLogger(__name__)
 
 # --- Konfiguration -----------------------------------------------------------
 
-# Serial-Port: Umgebungsvariable ARCADE_SERIAL_PORT oder Auto-Detect
-# Manuell setzen: ARCADE_SERIAL_PORT=COM3 (Windows) oder /dev/ttyUSB0 (Linux)
-_SERIAL_PORT = os.environ.get("ARCADE_SERIAL_PORT", None)   # None = auto-detect
-_SERIAL_BAUD = 115_200
-_WS_HOST     = "localhost"
-_WS_PORT     = 8765
+_SERIAL_PORT          = os.environ.get("ARCADE_SERIAL_PORT", "/dev/ttyACM0")
+_SERIAL_BAUD          = 115_200
+_WS_HOST              = "localhost"
+_WS_PORT              = 8765
+_ATTRACT_IDLE_TIMEOUT = int(os.environ.get("ARCADE_ATTRACT_TIMEOUT", "30"))
 
 # --- Segment-Mapping ---------------------------------------------------------
 
-SEGMENT_MAP: Dict[str, Tuple[str, int]] = {
-    "marquee":        ("A", 0),
-    "monitor_right":  ("A", 1),
-    "monitor_bottom": ("A", 2),
-    "monitor_left":   ("A", 3),
-    "monitor_top":    ("A", 4),
-    "control_panel":  ("A", 5),
-    "all_a":          ("A", 99),
-    "side_left":      ("B", 0),
-    "bottom":         ("B", 1),
-    "side_right":     ("B", 2),
-    "all_b":          ("B", 99),
+SEGMENTS: Dict[str, int] = {
+    "marquee":        0,
+    "monitor_top":    1,
+    "monitor_right":  2,
+    "monitor_bottom": 3,
+    "monitor_left":   4,
+    "control_panel":  5,
+    "all_a":          99,
 }
 
-SEGMENT_ALIASES: Dict[str, List[str]] = {
-    "monitor": ["monitor_right", "monitor_bottom", "monitor_left", "monitor_top"],
-    "sides":   ["side_left", "side_right"],
-}
+_MONITOR_SEGMENTS = ["monitor_top", "monitor_right", "monitor_bottom", "monitor_left"]
+_PHYSICAL_INDICES = [segment_id for segment_id in SEGMENTS.values() if segment_id != 99]
 
 # --- Spielfarben -------------------------------------------------------------
 
 GAME_COLORS: Dict[str, Tuple[int, int, int]] = {
-    "pac-man":        (255, 255, 0),
-    "space_invaders": (57,  255, 20),
-    "asteroids":      (0,   255, 255),
+    "pac_man":        (255, 255,   0),
+    "space_invaders": (255,   0, 255),
+    "asteroids":      (  0, 255, 255),
 }
-_COLOR_CYCLE = ["pac-man", "space_invaders", "asteroids"]
+_COLOR_CYCLE = ["pac_man", "space_invaders", "asteroids"]
 
 # --- Prioritäten -------------------------------------------------------------
 
-PRIORITY_LOW    = 1   # Attract-Mode, Idle
-PRIORITY_MEDIUM = 2   # Selektion, Treffer, Bonus
-PRIORITY_HIGH   = 3   # Spielstart, Game Over, Tod
+PRIORITY_LOW    = 1
+PRIORITY_MEDIUM = 2
+PRIORITY_HIGH   = 3
 
+# --- Effekt-Definitionen -----------------------------------------------------
+
+@dataclass
+class EffectDef:
+    """Statische Konfiguration eines LED-Effekts ohne Farbinformation."""
+    effect_type: str
+    segments:    Union[str, List[str]]
+    speed:       int = 50
+    length:      int = 5
+    repeat:      int = 0
+    priority:    int = PRIORITY_LOW
+
+# Menü-Selektion
+FX_SELECT_GAME  = EffectDef("scanner", "all_a",                     speed=50,   repeat=-1,  priority=PRIORITY_MEDIUM)
+
+# Attract-Mode
+FX_ATTRACT      = EffectDef("sparkle", "all_a",                     speed=50,   repeat=-1,  priority=PRIORITY_MEDIUM)
+
+# Spielstart
+FX_START_FLASH  = EffectDef("fill",    "all_a",                                 repeat=2,   priority=PRIORITY_HIGH)
+
+# Power-Down (Farbe ist immer Schwarz → _apply_direct)
+FX_SHUTDOWN_WIPE = EffectDef("wipe", ["marquee", "control_panel"],  speed=55,               priority=PRIORITY_HIGH)
+FX_SHUTDOWN_FILL = EffectDef("fill", _MONITOR_SEGMENTS,                                     priority=PRIORITY_HIGH)
+
+# ESP32 Attract-Mode
+FX_ESP32_ATTRACT = EffectDef("pulse", "all_a",                      speed=30,   repeat=-1,  priority=PRIORITY_LOW)
 
 # --- LED Bridge --------------------------------------------------------------
 
@@ -100,12 +118,15 @@ class LEDBridge:
     WebSocket-Server für Spiele bereit. Läuft in Daemon-Threads.
     """
 
+    _PRIORITY_LABELS = {PRIORITY_LOW: "LOW", PRIORITY_MEDIUM: "MED", PRIORITY_HIGH: "HIGH"}
+
     def __init__(
         self,
-        serial_port: Optional[str] = _SERIAL_PORT,
-        serial_baud: int           = _SERIAL_BAUD,
-        ws_host: str               = _WS_HOST,
-        ws_port: int               = _WS_PORT,
+        serial_port:          Optional[str] = _SERIAL_PORT,
+        serial_baud:          int           = _SERIAL_BAUD,
+        ws_host:              str           = _WS_HOST,
+        ws_port:              int           = _WS_PORT,
+        attract_idle_timeout: int           = _ATTRACT_IDLE_TIMEOUT,
     ):
         # ── Serial ────────────────────────────────────────────────────────────
         self._serial_port = serial_port
@@ -124,26 +145,25 @@ class LEDBridge:
             target=self._run_ws_loop, daemon=True, name="LED-WSServer"
         )
 
-        # ── Prioritäts-Tracking pro Kette ─────────────────────────────────────
-        self._cur_prio: Dict[str, int] = {"A": 0, "B": 0}
-        self._prio_lock = threading.Lock()
+        # ── Prioritäts-Tracking ───────────────────────────────────────────────
+        self._current_priority: int = 0
+        self._priority_lock = threading.Lock()
 
         # ── Attract-Mode State ────────────────────────────────────────────────
-        self._attract_active  = True
-        self._attract_start   = time.time()
-        self._attract_phase   = "soft_idle"   # "soft_idle" | "active_attract"
-        self._attract_color_i = 0
-        self._attract_event   = threading.Event()
+        self._is_attract_active    = True
+        self._attract_color_index  = 0
+        self._attract_event        = threading.Event()
+        self._attract_idle_timeout = attract_idle_timeout
 
-        # ── Launcher-Lock + Keepalive ─────────────────────────────────────────
-        self._launcher_locked     = False
-        self._locked_effects: List[dict] = []
-        self._locked_effects_lock = threading.Lock()
-        self._locked_recording    = False
+        # ── Keepalive ─────────────────────────────────────────────────────────
+        self._is_keepalive_active    = False
+        self._keepalive_effects: List[dict] = []
+        self._keepalive_effects_lock = threading.Lock()
+        self._is_recording_effects   = False
 
         self._current_game: Optional[str] = None
-        self._ambient_thread: Optional[threading.Thread] = None
         self._running = False
+        self._last_interaction_time: float = 0.0
 
     # ── Start / Stop ──────────────────────────────────────────────────────────
 
@@ -161,11 +181,12 @@ class LEDBridge:
             self._serial_port or "auto-detect", self._ws_host, self._ws_port,
         )
 
-    def stop(self):
-        """Sauber beenden — alle LEDs aus, Threads stoppen."""
+    def stop(self, send_all_off: bool = True):
+        """Sauber beenden — Threads stoppen, optional alle LEDs aus."""
         self._running = False
         self._attract_event.set()
-        self._send_all_off()
+        if send_all_off:
+            self._send_all_off()
         time.sleep(0.5)
         self._loop.call_soon_threadsafe(self._loop.stop)
         with self._serial_lock:
@@ -177,86 +198,54 @@ class LEDBridge:
 
     def notify_selection_changed(self, game_name: str):
         """Beim Navigieren im Menü (W/S): Spielfarbe anzeigen."""
-        self._attract_active  = False
-        self._launcher_locked = True
+        self._is_attract_active     = False
+        self._is_keepalive_active   = True
+        self._last_interaction_time = time.time()
         self._attract_event.set()
 
         r, g, b = self._game_color(game_name)
-        self._reset_prio()
-        with self._locked_effects_lock:
-            self._locked_effects.clear()
+        self._reset_priority()
+        with self._keepalive_effects_lock:
+            self._keepalive_effects.clear()
 
-        self._locked_recording = True
-        self._effect("pulse",   "marquee",       r, g, b, speed=50, priority=PRIORITY_MEDIUM)
-        self._effect("wipe",    "control_panel", r, g, b, speed=35, priority=PRIORITY_MEDIUM)
-        for seg in ["monitor_right", "monitor_bottom", "monitor_left", "monitor_top"]:
-            self._effect("fill", seg, r, g, b, priority=PRIORITY_MEDIUM)
-        self._effect("chase",   "side_left",  r, g, b, speed=25, priority=PRIORITY_MEDIUM)
-        self._effect("chase",   "side_right", r, g, b, speed=25, priority=PRIORITY_MEDIUM)
-        self._effect("rainbow", "bottom",     0, 0, 0, speed=15, priority=PRIORITY_MEDIUM)
-        self._locked_recording = False
+        self._is_recording_effects = True
+        self._apply(FX_SELECT_GAME, r, g, b)
+        self._is_recording_effects = False
 
     def notify_game_start(self, game_name: str):
-        """Vor dem Spielstart: weißes Blitz-Fill (HIGH), dann Spiel-Ambient."""
-        self._current_game    = game_name
-        self._attract_active  = False
-        self._launcher_locked = False        # Spiel übernimmt Kontrolle
-        with self._locked_effects_lock:
-            self._locked_effects.clear()
+        """Vor dem Spielstart: weißes Blitz-Fill (HIGH)."""
+        self._current_game          = game_name
+        self._is_attract_active     = False
+        self._is_keepalive_active   = False
+        with self._keepalive_effects_lock:
+            self._keepalive_effects.clear()
         self._attract_event.set()
-        self._reset_prio()
+        self._reset_priority()
 
-        white = (255, 255, 255)
-        for seg in ["marquee", "monitor_right", "monitor_bottom",
-                    "monitor_left", "monitor_top", "control_panel"]:
-            self._effect("fill", seg, *white, repeat=1, priority=PRIORITY_HIGH)
-        for seg in ["side_left", "bottom", "side_right"]:
-            self._effect("fill", seg, *white, repeat=1, priority=PRIORITY_HIGH)
-
-        def _delayed_ambient():
-            time.sleep(1.0)
-            if self._current_game != game_name:
-                return
-            r, g, b = self._game_color(game_name)
-            self._reset_prio()
-            self._effect("pulse",   "marquee",       r, g, b, speed=30, priority=PRIORITY_MEDIUM)
-            self._effect("fill",    "control_panel", r, g, b,            priority=PRIORITY_MEDIUM)
-            for seg in ["monitor_right", "monitor_bottom", "monitor_left", "monitor_top"]:
-                self._effect("blink", seg, r, g, b, speed=80, priority=PRIORITY_MEDIUM)
-            self._effect("rainbow", "side_left",  0, 0, 0, speed=20, priority=PRIORITY_LOW)
-            self._effect("rainbow", "side_right", 0, 0, 0, speed=20, priority=PRIORITY_LOW)
-            self._effect("pulse",   "bottom",     r, g, b, speed=15, priority=PRIORITY_LOW)
-
-        self._ambient_thread = threading.Thread(target=_delayed_ambient, daemon=True, name="LED-Ambient")
-        self._ambient_thread.start()
+        self._apply(FX_START_FLASH, 255, 255, 255)
 
     def notify_game_stop(self):
         """Nach Spielende: sofortiger Takeover, dann Attract-Mode neu starten."""
-        self._current_game    = None
-        self._launcher_locked = True
-        self._force_takeover()
-        self._attract_active  = True
-        self._attract_start   = time.time()
-        self._attract_phase   = "soft_idle"
-        self._attract_color_i = 0
-        self._reset_prio()
+        self._current_game          = None
+        self._is_keepalive_active   = True
+        self._reclaim_all_segments()
+        self._is_attract_active     = True
+        self._attract_color_index   = 0
+        self._reset_priority()
         self._attract_event.set()
         logger.info("LEDBridge: Attract-Mode neugestartet.")
 
     def notify_launcher_exit(self):
-        """Sauberer Exit: Power-Down-Animation, dann alle LEDs aus."""
+        """Power-Down-Animation, dann ESP32-Attract-Mode aktivieren."""
         logger.info("LED: Launcher-Exit — Power-Down-Animation...")
-        self._attract_active = False
+        self._is_attract_active = False
         self._attract_event.set()
-        self._reset_prio()
-        for seg in ["marquee", "control_panel"]:
-            self._write_serial_direct("wipe", seg, speed=55)
-        for seg in ["monitor_right", "monitor_bottom", "monitor_left", "monitor_top"]:
-            self._write_serial_direct("fill", seg)
-        for seg in ["side_left", "bottom", "side_right"]:
-            self._write_serial_direct("wipe", seg, speed=40)
+        self._reset_priority()
+        self._apply_direct(FX_SHUTDOWN_WIPE)
+        self._apply_direct(FX_SHUTDOWN_FILL)
         time.sleep(0.6)
-        self.stop()
+        self._apply_direct(FX_ESP32_ATTRACT)
+        self.stop(send_all_off=False)
 
     def is_connected(self) -> bool:
         """True wenn ESP32 via Serial verbunden."""
@@ -264,103 +253,97 @@ class LEDBridge:
 
     # ── Interne Effekt-Logik ──────────────────────────────────────────────────
 
-    _PRIO_NAMES = {PRIORITY_LOW: "LOW", PRIORITY_MEDIUM: "MED", PRIORITY_HIGH: "HIGH"}
+    def _apply(self, fx: EffectDef, r: int, g: int, b: int) -> None:
+        self._send_effect(fx.effect_type, fx.segments, r, g, b,
+                         speed=fx.speed, length=fx.length, repeat=fx.repeat,
+                         priority=fx.priority)
 
-    def _effect(
+    def _apply_direct(self, fx: EffectDef) -> None:
+        """Effekt ohne Prioritätsprüfung mit Schwarz senden (Power-Down)."""
+        indices = self._resolve_segment_indices(fx.segments)
+        if not indices:
+            return
+        self._write_serial({
+            "cmd": "effect", "chain": "A", "type": fx.effect_type,
+            "segment": indices[0] if len(indices) == 1 else indices,
+            "color": {"r": 0, "g": 100, "b": 200},
+            "speed": fx.speed, "length": fx.length, "repeat": 1, "priority": PRIORITY_HIGH,
+        })
+
+    def _send_effect(
         self,
         effect_type: str,
-        segment: str,
+        segments:    Union[str, List[str]],
         r: int, g: int, b: int,
-        speed: int = 50,
-        length: int = 5,
-        repeat: int = 0,
-        brightness: int = 255,
-        priority: int = PRIORITY_LOW,
+        speed:       int = 50,
+        length:      int = 5,
+        repeat:      int = 0,
+        priority:    int = PRIORITY_LOW,
     ):
-        """Prioritätsprüfung → Alias expandieren → Serial senden."""
-        if segment in SEGMENT_ALIASES:
-            for real_seg in SEGMENT_ALIASES[segment]:
-                self._effect(effect_type, real_seg, r, g, b,
-                             speed, length, repeat, brightness, priority)
+        """Prioritätsprüfung → Serial senden."""
+        indices   = self._resolve_segment_indices(segments)
+        seg_names = [segments] if isinstance(segments, str) else list(segments)
+        if not indices:
             return
 
-        if segment not in SEGMENT_MAP:
-            logger.debug("LED: Unbekanntes Segment: %s", segment)
-            return
-
-        chain, seg_idx = SEGMENT_MAP[segment]
-
-        with self._prio_lock:
-            if priority < self._cur_prio.get(chain, 0):
+        with self._priority_lock:
+            if priority < self._current_priority:
                 logger.debug(
-                    "LED: [%s] %s auf '%s' blockiert (Prio %s < %s)",
-                    chain, effect_type, segment,
-                    self._PRIO_NAMES.get(priority, priority),
-                    self._PRIO_NAMES.get(self._cur_prio[chain], self._cur_prio[chain]),
+                    "LED: %s auf '%s' blockiert (Prio %s < %s)",
+                    effect_type, ",".join(seg_names),
+                    self._PRIORITY_LABELS.get(priority, priority),
+                    self._PRIORITY_LABELS.get(self._current_priority, self._current_priority),
                 )
                 return
-            self._cur_prio[chain] = priority
+            self._current_priority = priority
 
         logger.info(
-            "LED %-4s | %-7s | %-16s | rgb(%3d,%3d,%3d) | speed=%-3d repeat=%d",
-            f"[{chain}]", effect_type, segment, r, g, b, speed, repeat,
+            "LED [A] | %-7s | %-40s | rgb(%3d,%3d,%3d) | speed=%-3d repeat=%d",
+            effect_type, ",".join(seg_names), r, g, b, speed, repeat,
         )
         payload = {
             "cmd":        "effect",
-            "chain":      chain,
+            "chain":      "A",
             "type":       effect_type,
-            "segment":    seg_idx,
+            "segment":    indices[0] if len(indices) == 1 else indices,
             "color":      {"r": r, "g": g, "b": b},
             "speed":      speed,
             "length":     length,
-            "repeat":     repeat,
-            "brightness": brightness,
-            "priority":   priority,
+            "repeat":   repeat,
+            "priority": priority,
         }
-        with self._locked_effects_lock:
-            if self._locked_recording:
-                self._locked_effects.append(dict(payload))
+        with self._keepalive_effects_lock:
+            if self._is_recording_effects:
+                self._keepalive_effects.append(dict(payload))
         self._write_serial(payload)
 
-    def _send_all_off(self):
-        for seg, (chain, idx) in SEGMENT_MAP.items():
-            if idx == 99:
-                continue
-            self._write_serial({
-                "cmd": "effect", "chain": chain, "type": "off",
-                "segment": idx, "priority": PRIORITY_HIGH,
-            })
+    def _resolve_segment_indices(self, segments: Union[str, List[str]]) -> List[int]:
+        seg_names = [segments] if isinstance(segments, str) else segments
+        indices = [SEGMENTS[name] for name in seg_names if name in SEGMENTS]
+        for name in seg_names:
+            if name not in SEGMENTS:
+                logger.debug("LED: Unbekanntes Segment: %s", name)
+        return indices
 
-    def _write_serial_direct(self, effect: str, segment: str, speed: int = 50):
-        """Hilfsmethode: Segment schwarz/aus setzen (bypasses priority check)."""
-        if segment not in SEGMENT_MAP:
-            return
-        chain, idx = SEGMENT_MAP[segment]
+    def _send_all_off(self):
         self._write_serial({
-            "cmd": "effect", "chain": chain, "type": effect,
-            "segment": idx, "color": {"r": 0, "g": 0, "b": 0},
-            "speed": speed, "repeat": 1, "priority": PRIORITY_HIGH,
+            "cmd": "effect", "chain": "A", "type": "off",
+            "segment": 99, "priority": PRIORITY_HIGH,
         })
 
-    def _force_takeover(self):
-        """Sofortiger HIGH-Takeover: überschreibt alle Spiel-Effekte auf dem ESP32."""
+    def _reclaim_all_segments(self):
+        """HIGH-Takeover: überschreibt alle Spiel-Effekte auf dem ESP32."""
         logger.info("LED: Launcher-Takeover — alle Spiel-Effekte überschrieben (HIGH)")
-        for seg, (chain, idx) in SEGMENT_MAP.items():
-            if idx == 99:
-                continue
-            self._write_serial({
-                "cmd": "effect", "chain": chain, "type": "off",
-                "segment": idx, "priority": PRIORITY_HIGH,
-            })
+        self._send_all_off()
 
     def _keepalive_loop(self):
-        """Re-sendet Launcher-Zustand alle 1.5 s mit HIGH-Prio (überschreibt Spiel-Effekte)."""
+        """Re-sendet Launcher-Zustand alle 1.5 s mit HIGH-Prio."""
         while self._running:
             time.sleep(1.5)
-            if not self._launcher_locked:
+            if not self._is_keepalive_active:
                 continue
-            with self._locked_effects_lock:
-                cmds = list(self._locked_effects)
+            with self._keepalive_effects_lock:
+                cmds = list(self._keepalive_effects)
             if not cmds:
                 continue
             logger.debug("LED: Keepalive — %d Effekte re-assertiert (HIGH)", len(cmds))
@@ -375,73 +358,53 @@ class LEDBridge:
             time.sleep(5)
             with self._serial_lock:
                 is_connected = self._serial is not None and self._serial.is_open
-            if not is_connected and _SERIAL_OK:
+            if not is_connected and _SERIAL_AVAILABLE:
                 logger.info("LED: Serial nicht verbunden — versuche Reconnect...")
                 self._connect_serial()
 
-    def _reset_prio(self):
-        with self._prio_lock:
-            self._cur_prio = {"A": 0, "B": 0}
+    def _reset_priority(self):
+        with self._priority_lock:
+            self._current_priority = 0
 
     # ── Attract-Mode (Daemon-Thread) ──────────────────────────────────────────
 
     def _attract_loop(self):
         while self._running:
             self._attract_event.clear()
-            if not self._attract_active:
-                self._attract_event.wait(timeout=1.0)
-                continue
 
-            elapsed   = time.time() - self._attract_start
-            new_phase = "active_attract" if elapsed >= 300 else "soft_idle"
-            if new_phase != self._attract_phase:
-                self._attract_phase = new_phase
-                self._reset_prio()
-                logger.info("LEDBridge Attract: → %s", new_phase)
+            if not self._is_attract_active:
+                idle = time.time() - self._last_interaction_time
+                can_activate = (
+                    self._last_interaction_time > 0
+                    and idle >= self._attract_idle_timeout
+                    and self._current_game is None
+                )
+                if can_activate:
+                    self._is_attract_active   = True
+                    self._attract_color_index = 0
+                    self._reset_priority()
+                    logger.info("LEDBridge: Attract-Mode nach %.0fs Inaktivität aktiviert", idle)
+                else:
+                    self._attract_event.wait(timeout=1.0)
+                    continue
 
-            r, g, b = GAME_COLORS[_COLOR_CYCLE[self._attract_color_i % 3]]
-            self._reset_prio()
+            r, g, b = GAME_COLORS[_COLOR_CYCLE[self._attract_color_index % len(_COLOR_CYCLE)]]
+            self._reset_priority()
 
-            with self._locked_effects_lock:
-                self._locked_effects.clear()
-            self._locked_recording = True
+            with self._keepalive_effects_lock:
+                self._keepalive_effects.clear()
+            self._is_recording_effects = True
+            self._apply(FX_ATTRACT, r, g, b)
+            self._is_recording_effects = False
 
-            if self._attract_phase == "soft_idle":
-                self._attract_soft_idle(r, g, b)
-                self._locked_recording = False
-                self._attract_event.wait(timeout=2.0)
-            else:
-                self._attract_active_attract()
-                self._locked_recording = False
-                self._attract_event.wait(timeout=2.0)
-                if self._attract_active:
-                    self._attract_color_i += 1
-
-    def _attract_soft_idle(self, r: int, g: int, b: int):
-        """0–5 Min: sanftes Pulsieren in Spielfarbe + langsamer Rainbow Ambient."""
-        for seg in ["marquee", "monitor_right", "monitor_bottom",
-                    "monitor_left", "monitor_top", "control_panel"]:
-            self._effect("pulse", seg, r, g, b, speed=15, priority=PRIORITY_LOW)
-        for seg in ["side_left", "bottom", "side_right"]:
-            self._effect("rainbow", seg, 0, 0, 0, speed=8, priority=PRIORITY_LOW)
-
-    def _attract_active_attract(self):
-        """5+ Min: Spielfarben rotieren auf A, Chase auf Ambient-Seiten."""
-        i          = self._attract_color_i
-        r1, g1, b1 = GAME_COLORS[_COLOR_CYCLE[i % 3]]
-        r2, g2, b2 = GAME_COLORS[_COLOR_CYCLE[(i + 1) % 3]]
-        self._effect("rainbow", "marquee",       0,  0,  0,  speed=40, priority=PRIORITY_LOW)
-        self._effect("chase",   "control_panel", r1, g1, b1, speed=45, priority=PRIORITY_LOW)
-        for seg in ["monitor_right", "monitor_bottom", "monitor_left", "monitor_top"]:
-            self._effect("chase", seg, r1, g1, b1, speed=55, priority=PRIORITY_LOW)
-        self._effect("chase",   "side_left",  r2, g2, b2, speed=30, priority=PRIORITY_LOW)
-        self._effect("chase",   "side_right", r2, g2, b2, speed=30, priority=PRIORITY_LOW)
-        self._effect("sparkle", "bottom",     r1, g1, b1, speed=60, priority=PRIORITY_LOW)
+            self._attract_event.wait(timeout=4.0)
+            if self._is_attract_active:
+                self._attract_color_index += 1
 
     # ── Serial-Kommunikation ──────────────────────────────────────────────────
 
     def _connect_serial(self):
-        if not _SERIAL_OK:
+        if not _SERIAL_AVAILABLE:
             return
         port = self._serial_port or self._auto_detect_port()
         if not port:
@@ -460,45 +423,48 @@ class LEDBridge:
             self._serial = None
 
     def _auto_detect_port(self) -> Optional[str]:
-        if not _SERIAL_OK:
+        if not _SERIAL_AVAILABLE:
             return None
         keywords = ("cp210", "ch340", "esp32", "uart", "usb serial",
                     "usb-serial", "silicon labs")
-        for p in serial.tools.list_ports.comports():
-            desc = (p.description or "").lower()
-            mfg  = (p.manufacturer or "").lower()
-            if any(k in desc or k in mfg for k in keywords):
-                logger.info("LED: ESP32 gefunden auf %s (%s)", p.device, p.description)
-                return p.device
+        for port_info in serial.tools.list_ports.comports():
+            description  = (port_info.description  or "").lower()
+            manufacturer = (port_info.manufacturer or "").lower()
+            if any(k in description or k in manufacturer for k in keywords):
+                logger.info("LED: ESP32 gefunden auf %s (%s)", port_info.device, port_info.description)
+                return port_info.device
         return None
 
     def _write_serial(self, payload: dict):
         """Thread-sicher JSON an ESP32 senden."""
-        if not self._serial or not self._serial.is_open:
-            return
         try:
             data = json.dumps(payload, separators=(",", ":")) + "\n"
             with self._serial_lock:
+                if not self._serial or not self._serial.is_open:
+                    return
                 self._serial.write(data.encode("utf-8"))
         except Exception as exc:
             logger.warning("LED: Serial-Schreibfehler: %s", exc)
             with self._serial_lock:
-                self._serial = None  # Reconnect-Loop triggern
+                self._serial = None
 
     def _serial_reader(self):
         """ESP32-Antworten empfangen: Heartbeat + NACK."""
-        while self._running and self._serial and self._serial.is_open:
+        while self._running:
+            with self._serial_lock:
+                serial_ref = self._serial
+            if not serial_ref or not serial_ref.is_open:
+                break
             try:
-                raw = self._serial.readline().decode("utf-8", errors="ignore").strip()
-                if not raw:
+                raw_line = serial_ref.readline().decode("utf-8", errors="ignore").strip()
+                if not raw_line:
                     continue
-                data = json.loads(raw)
+                data = json.loads(raw_line)
                 if data.get("status") == "ready":
                     logger.info(
-                        "ESP32 bereit — v%s | Kette A: %d LEDs | Kette B: %d LEDs",
+                        "ESP32 bereit — v%s | Kette A: %d LEDs",
                         data.get("version", "?"),
                         data.get("leds_a", 0),
-                        data.get("leds_b", 0),
                     )
                 elif data.get("status") == "error":
                     logger.error(
@@ -508,8 +474,8 @@ class LEDBridge:
                     )
             except (json.JSONDecodeError, UnicodeDecodeError):
                 pass
-            except Exception as e:
-                logger.error("LED: Serial-Reader unerwartet beendet: %s", e)
+            except Exception as exc:
+                logger.error("LED: Serial-Reader unerwartet beendet: %s", exc)
                 break
 
     # ── WebSocket-Server (für Spiele) ─────────────────────────────────────────
@@ -518,7 +484,7 @@ class LEDBridge:
         self._loop.run_until_complete(self._ws_serve())
 
     async def _ws_serve(self):
-        if not _WS_OK:
+        if not _WS_AVAILABLE:
             return
         while self._running:
             try:
@@ -535,40 +501,34 @@ class LEDBridge:
                 await asyncio.sleep(5)
 
     async def _handle_game_client(self, websocket):
-        addr = getattr(websocket, "remote_address", "?")
+        client_address = getattr(websocket, "remote_address", "?")
         self._ws_clients.add(websocket)
-        logger.info("LED-WS: Spiel verbunden: %s", addr)
+        logger.info("LED-WS: Spiel verbunden: %s", client_address)
         try:
             async for message in websocket:
-                await self._handle_game_message(message, websocket)
-        except Exception as e:
-            logger.debug("LED-WS: Client-Verbindungsfehler (%s): %s", addr, e)
+                await self._handle_game_message(message)
+        except Exception as exc:
+            logger.debug("LED-WS: Client-Verbindungsfehler (%s): %s", client_address, exc)
         finally:
             self._ws_clients.discard(websocket)
-            logger.info("LED-WS: Spiel getrennt: %s", addr)
+            logger.info("LED-WS: Spiel getrennt: %s", client_address)
 
-    async def _handle_game_message(self, message: str, websocket):
-        """Spiel-Effektbefehle validieren und (wenn nicht gesperrt) an ESP32 senden."""
+    async def _handle_game_message(self, message: str):
+        """Spiel-Effektbefehle validieren und an ESP32 senden."""
         try:
             data = json.loads(message)
         except json.JSONDecodeError:
             return
 
-        command = data.get("cmd")
-
-        # attract/lock sind bridge-intern — nie an ESP32 weiterleiten
-        if command in ("attract", "lock"):
-            return
-
-        if command != "effect":
+        if data.get("cmd") != "effect":
             return
 
         color = data.get("color", {})
         if isinstance(color, dict):
             data["color"] = {
-                "r": max(0, min(255, int(color.get("r", 0)))),
-                "g": max(0, min(255, int(color.get("g", 0)))),
-                "b": max(0, min(255, int(color.get("b", 0)))),
+                "r": self._clamp_color_channel(color.get("r", 0)),
+                "g": self._clamp_color_channel(color.get("g", 0)),
+                "b": self._clamp_color_channel(color.get("b", 0)),
             }
 
         self._write_serial(data)
@@ -577,15 +537,12 @@ class LEDBridge:
     # ── Hilfsfunktionen ───────────────────────────────────────────────────────
 
     @staticmethod
+    def _clamp_color_channel(value) -> int:
+        return max(0, min(255, int(value)))
+
+    @staticmethod
     def _game_color(game_name: str) -> Tuple[int, int, int]:
-        n = game_name.lower()
-        if "pac" in n:
-            return GAME_COLORS["pac-man"]
-        if "space" in n or "invader" in n:
-            return GAME_COLORS["space_invaders"]
-        if "asteroid" in n:
-            return GAME_COLORS["asteroids"]
-        return (255, 255, 255)
+        return GAME_COLORS[game_name.lower()]
 
 
 # ── Singleton-Accessor ────────────────────────────────────────────────────────
