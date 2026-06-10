@@ -1,4 +1,11 @@
 {
+    "screen": {
+        "width": 800,
+        "height": 600,
+        "fullscreen": false,
+        "virtual_width": 1280,
+        "virtual_height": 720
+    },
     "games": [
         {
             "display_name": "SPACE INVADERS",

@@ -13,7 +13,8 @@ from led_bridge import get_bridge
 
 os.environ['SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS'] = '0'
 
-VIRTUAL_W, VIRTUAL_H = 1280, 720
+VIRTUAL_W = screen_config["virtual_width"]
+VIRTUAL_H = screen_config["virtual_height"]
 
 
 class DisplayManager:
@@ -21,7 +22,17 @@ class DisplayManager:
         pygame.mixer.pre_init(44100, -16, 2, 512)
         pygame.init()
         pygame.mouse.set_visible(False)
-        self._real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        w = screen_config["width"]
+        h = screen_config["height"]
+        fullscreen = screen_config["fullscreen"]
+        if fullscreen:
+            flags = pygame.FULLSCREEN
+            size = (w, h) if (w and h) else (0, 0)
+        else:
+            flags = 0
+            info = pygame.display.Info()
+            size = (w or info.current_w, h or info.current_h)
+        self._real_screen = pygame.display.set_mode(size, flags)
         self.real_w, self.real_h = self._real_screen.get_size()
         self._virtual = pygame.Surface((VIRTUAL_W, VIRTUAL_H))
 
@@ -48,14 +59,18 @@ class DisplayManager:
         self.present()
 
     def reset_after_game(self, current_os: str) -> None:
+        w = screen_config["width"]
+        h = screen_config["height"]
+        fullscreen = screen_config["fullscreen"]
+        flags = pygame.FULLSCREEN if fullscreen else 0
+        size = (w, h) if (w and h) else (0, 0)
         if current_os == "Linux":
             pygame.time.wait(200)
             pygame.display.quit()
             pygame.display.init()
             pygame.mouse.set_visible(False)
-            self._real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        elif current_os == "Darwin":
-            self._real_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        if current_os in ("Linux", "Darwin"):
+            self._real_screen = pygame.display.set_mode(size, flags)
         pygame.event.clear()
 
 

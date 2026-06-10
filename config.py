@@ -37,7 +37,7 @@ WHITE       = (255, 255, 255)
 RED         = (255, 0, 0)
 PUNK_COLORS = [NEON_CYAN, NEON_PINK, NEON_YELLOW, NEON_GREEN, NEON_RED]
 
-_CONFIG_FILE = os.path.join(RESOURCE_PATH, "games.json")
+_CONFIG_FILE = os.path.join("/Users/lws-mc05/Documents/project.lws/ArcadeLauncher/", "games.json")
 
 
 def load_games_config() -> list:
@@ -68,3 +68,26 @@ def load_games_config() -> list:
 
 
 games = load_games_config()
+
+
+def load_screen_config() -> dict:
+    defaults = {"width": 0, "height": 0, "fullscreen": True, "virtual_width": 800, "virtual_height": 600}
+    if not os.path.exists(_CONFIG_FILE):
+        return defaults
+    try:
+        with open(_CONFIG_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        cfg = data.get("screen", {})
+        return {
+            "width":          int(cfg.get("width",          defaults["width"])),
+            "height":         int(cfg.get("height",         defaults["height"])),
+            "fullscreen":     bool(cfg.get("fullscreen",     defaults["fullscreen"])),
+            "virtual_width":  int(cfg.get("virtual_width",  defaults["virtual_width"])),
+            "virtual_height": int(cfg.get("virtual_height", defaults["virtual_height"])),
+        }
+    except Exception as e:
+        logging.warning("Fehler beim Laden der Screen-Konfiguration: %s", e)
+        return defaults
+
+
+screen_config = load_screen_config()
