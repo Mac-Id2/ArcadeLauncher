@@ -37,7 +37,7 @@ WHITE       = (255, 255, 255)
 RED         = (255, 0, 0)
 PUNK_COLORS = [NEON_CYAN, NEON_PINK, NEON_YELLOW, NEON_GREEN, NEON_RED]
 
-_CONFIG_FILE = os.path.join("/Users/lws-mc05/Documents/project.lws/ArcadeLauncher/", "games.json")
+_CONFIG_FILE = os.path.join(RESOURCE_PATH, "games.json")
 
 
 def load_games_config() -> list:
