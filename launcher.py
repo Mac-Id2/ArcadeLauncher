@@ -490,11 +490,11 @@ class ArcadeLauncher:
             return False
         if not self._games:
             return True
-        if key == pygame.K_w:
+        if key == pygame.K_UP:
             self._select(self._selected - 1)
-        elif key == pygame.K_s:
+        elif key == pygame.K_DOWN:
             self._select(self._selected + 1)
-        elif key == pygame.K_SPACE:
+        elif key == pygame.K_RETURN:
             self._launch_selected()
         return True
 
